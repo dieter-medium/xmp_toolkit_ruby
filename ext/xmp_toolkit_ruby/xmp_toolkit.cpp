@@ -1,0 +1,321 @@
+#include "xmp_toolkit.hpp"
+
+
+
+bool xmp_meta_error_callback(
+                                       void *             clientContext,
+                                       XMP_ErrorSeverity  severity,
+                                       XMP_Int32          cause,
+                                       XMP_StringPtr      message
+) {
+   const char * sevStr = (severity == kXMPErrSev_Recoverable) ? "RECOVERABLE"
+                         : (severity == kXMPErrSev_OperationFatal)    ? "FATAL OPERATION"
+                            : (severity == kXMPErrSev_FileFatal)         ? "FATAL FILE"
+                                 : (severity == kXMPErrSev_ProcessFatal)      ? "FATAL PROCESS"
+                                                               : "UNKNOWN";
+   std::cerr << "[TXMPMeta " << sevStr << "] "
+             << "Code=0x" << std::hex << cause << std::dec
+             << "  Msg=\"" << (message ? message : "(no detail)") << "\"\n";
+
+   // If it's a recoverable error, return true so XMP can try to continue;
+   // otherwise return false to force an exception back to the caller.
+   return (severity == kXMPErrSev_Recoverable);
+}
+
+bool xmp_file_error_callback(
+ void *             clientContext,
+    XMP_StringPtr      filePath,
+    XMP_ErrorSeverity  severity,
+    XMP_Int32          cause,
+    XMP_StringPtr      message){
+
+    const char * sevStr = (severity == kXMPErrSev_Recoverable) ? "RECOVERABLE"
+                             : (severity == kXMPErrSev_OperationFatal)    ? "FATAL OPERATION"
+                                : (severity == kXMPErrSev_FileFatal)         ? "FATAL FILE"
+                                     : (severity == kXMPErrSev_ProcessFatal)      ? "FATAL PROCESS"
+                                                                   : "UNKNOWN";
+
+    std::cerr << "[TXMPFiles " << sevStr << "] "
+                  << "file=\"" << (filePath ? filePath : "(null)") << "\"  "
+                  << "cause=0x" << std::hex << cause << std::dec << "\n"
+                  << "    msg=\"" << (message ? message : "(no detail)") << "\"\n";
+
+        // Only attempt recovery if the error is marked recoverable
+        return (severity == kXMPErrSev_Recoverable);
+}
+
+VALUE write_xmp_to_file(int argc, VALUE* argv, VALUE self){
+    VALUE rb_filename, rb_xmp_data, rb_mode_sym;
+    XMP_OptionBits templateFlags = 0;
+
+    rb_scan_args(argc, argv, "3", &rb_filename, &rb_xmp_data, &rb_mode_sym);
+
+    Check_Type(rb_filename, T_STRING);
+    const char* xmpString = NULL;
+    if (!NIL_P(rb_xmp_data)) {
+      Check_Type(rb_xmp_data, T_STRING);
+      xmpString = StringValueCStr(rb_xmp_data);
+    }
+
+    const char* mode_cstr;
+    if (RB_TYPE_P(rb_mode_sym, T_SYMBOL)) {
+        // Convert symbol to string first
+        VALUE mode_str = rb_sym_to_s(rb_mode_sym);
+        mode_cstr = StringValueCStr(mode_str);
+    } else {
+        // Already a string
+        mode_cstr = StringValueCStr(rb_mode_sym);
+    }
+    bool override;
+
+    if (strcmp(mode_cstr, "upsert") == 0) {
+       templateFlags = kXMPTemplate_AddNewProperties
+                       | kXMPTemplate_ReplaceExistingProperties
+                       | kXMPTemplate_IncludeInternalProperties;
+      override = false;
+    } else if (strcmp(mode_cstr, "override") == 0) {
+      override = true;
+    } else {
+       rb_raise(rb_eArgError, "mode must be :upsert or :override (String or Symbol). Got '%s'", mode_cstr);
+       return Qnil; // unreachable, but for clarity
+    }
+
+
+    const char* fileName = StringValueCStr(rb_filename);
+
+    bool ok;
+    SXMPFiles xmpFile;
+    SXMPMeta newMeta;
+    SXMPMeta currentMeta;
+    XMP_PacketInfo    xmpPacket;
+
+    if (xmpString != NULL) {
+        int i;
+        for (i = 0; i < (long)strlen(xmpString) - 10; i += 10){
+            newMeta.ParseFromBuffer(&xmpString[i], 10, kXMP_ParseMoreBuffers);
+        }
+
+        newMeta.ParseFromBuffer(&xmpString[i], (XMP_StringLen)strlen(xmpString) - i);
+    }
+
+    try {
+        XMP_OptionBits opts = kXMPFiles_OpenForUpdate | kXMPFiles_OpenUseSmartHandler;
+        ok = xmpFile.OpenFile(fileName, kXMP_UnknownFile, opts);
+        if (!ok) {
+            xmpFile.CloseFile();
+
+            opts = kXMPFiles_OpenForUpdate | kXMPFiles_OpenUsePacketScanning;
+            ok   = xmpFile.OpenFile( fileName, kXMP_UnknownFile, opts );
+            if ( ! ok ) {
+                // Neither smart handler nor packet scanning worked
+                xmpFile.CloseFile();
+                return Qnil;
+            }
+        }
+
+        fprintf(stderr, "Opened file %s for update\n", fileName);
+
+        ok = xmpFile.GetXMP(&currentMeta, 0, &xmpPacket);
+        if (!ok) {
+            xmpFile.CloseFile();
+            return Qnil;
+        }
+
+        XMP_DateTime dt;
+        SXMPUtils::CurrentDateTime(&dt);
+        std::string nowStr;
+        SXMPUtils::ConvertFromDate(dt, &nowStr);
+
+        if (xmpString != NULL){
+          newMeta.SetProperty(kXMP_NS_XMP, "MetadataDate", nowStr.c_str());
+        }
+
+        std::string newBuffer;
+        if (override) {
+
+           if (xmpFile.CanPutXMP(newMeta) ) {
+              xmpFile.PutXMP(newMeta);
+           } else {
+               xmpFile.CloseFile();
+
+               newMeta.SerializeToBuffer(&newBuffer);
+
+               rb_raise(rb_eArgError, "Can't update XMP new Data: '%s'", newBuffer.c_str());
+
+               return Qnil;
+           }
+        } else {
+            SXMPUtils::ApplyTemplate(
+                &currentMeta,
+                newMeta,
+                templateFlags
+            );
+
+            if (xmpFile.CanPutXMP(currentMeta) ) {
+               xmpFile.PutXMP(currentMeta);
+             } else {
+               xmpFile.CloseFile();
+
+               currentMeta.SerializeToBuffer(&newBuffer);
+
+               rb_raise(rb_eArgError, "Can't update XMP new Data: '%s'", newBuffer.c_str());
+
+               return Qnil;
+             }
+        }
+
+
+
+
+        xmpFile.CloseFile();
+    }
+    catch (XMP_Error& e) {
+        xmpFile.CloseFile();
+        rb_raise(rb_eRuntimeError, "XMP Error: %s", e.GetErrMsg());
+        return Qnil;
+    }
+    catch (...) {
+        xmpFile.CloseFile();
+        rb_raise(rb_eRuntimeError, "Unknown error processing XMP file");
+        return Qnil;
+    }
+
+    return Qnil;
+}
+
+VALUE get_xmp_from_file(VALUE self, VALUE rb_filename)
+{
+    Check_Type(rb_filename, T_STRING);
+    const char* fileName = StringValueCStr(rb_filename);
+
+    bool ok;
+    SXMPMeta    xmpMeta;
+    SXMPFiles   xmpFile;
+    XMP_FileFormat    format;
+    XMP_OptionBits    openFlags, handlerFlags;
+    XMP_PacketInfo    xmpPacket;
+
+    try {
+        XMP_OptionBits opts = kXMPFiles_OpenForRead | kXMPFiles_OpenUseSmartHandler;
+        ok = xmpFile.OpenFile(fileName, kXMP_UnknownFile, opts);
+        if (!ok) {
+            xmpFile.CloseFile();
+
+            opts = kXMPFiles_OpenForRead | kXMPFiles_OpenUsePacketScanning;
+            ok   = xmpFile.OpenFile( fileName, kXMP_UnknownFile, opts );
+            if ( ! ok ) {
+                // Neither smart handler nor packet scanning worked
+                xmpFile.CloseFile();
+                return Qnil;
+            }
+        }
+
+        ok = xmpFile.GetFileInfo(0, &openFlags, &format, &handlerFlags);
+        if (!ok) {
+            xmpFile.CloseFile();
+            return Qnil;
+        }
+
+        ok = xmpFile.GetXMP(&xmpMeta, 0, &xmpPacket);
+        if (!ok) {
+            xmpFile.CloseFile();
+            return Qnil;
+        }
+
+        VALUE result = rb_hash_new();
+
+        rb_hash_aset(result,
+                     rb_str_new_cstr("format"),
+                     UINT2NUM(format));
+        rb_hash_aset(result,
+                     rb_str_new_cstr("handler_flags"),
+                     UINT2NUM(handlerFlags));
+        rb_hash_aset(result,
+                     rb_str_new_cstr("offset"),
+                     LONG2NUM(xmpPacket.offset));
+        rb_hash_aset(result,
+                     rb_str_new_cstr("length"),
+                     LONG2NUM(xmpPacket.length));
+
+        std::string xmpString;
+        xmpMeta.SerializeToBuffer(&xmpString);
+        rb_hash_aset(result,
+                     rb_str_new_cstr("xmp_data"),
+                     rb_str_new_cstr(xmpString.c_str()));
+
+        xmpFile.CloseFile();
+        return result;
+    }
+    catch (XMP_Error& e) {
+        xmpFile.CloseFile();
+        rb_raise(rb_eRuntimeError, "XMP Error: %s", e.GetErrMsg());
+        return Qnil;
+    }
+    catch (...) {
+        xmpFile.CloseFile();
+        rb_raise(rb_eRuntimeError, "Unknown error processing XMP file");
+        return Qnil;
+    }
+}
+
+// xmp_initialize(self, filename)
+// Initialize the XMP Toolkit and SXMPFiles with an optional PLUGINS_PATH
+VALUE xmp_initialize(VALUE self)
+{
+    try {
+        if (!SXMPMeta::Initialize()) {
+            rb_raise(rb_eRuntimeError, "Failed to initialize XMP Toolkit metadata");
+            return Qnil;
+        }
+
+        // Look up XmpToolkitRuby::PLUGINS_PATH if defined
+        VALUE xmp_module = rb_const_get(rb_cObject, rb_intern("XmpToolkitRuby"));
+        if (rb_const_defined(xmp_module, rb_intern("PLUGINS_PATH"))) {
+            VALUE plugins_path = rb_const_get(xmp_module, rb_intern("PLUGINS_PATH"));
+
+            if (TYPE(plugins_path) == T_STRING) {
+                const char* path = StringValueCStr(plugins_path);
+                XMP_OptionBits options = 0;
+                options |= kXMPFiles_ServerMode;
+
+                if (!SXMPFiles::Initialize(options, path)) {
+                    rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files with plugin path");
+                    return Qnil;
+                }
+            }
+            else {
+                if (!SXMPFiles::Initialize()) {
+                    rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files without plugin path");
+                    return Qnil;
+                }
+            }
+        }
+        else {
+            if (!SXMPFiles::Initialize()) {
+                rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files (PLUGINS_PATH not defined)");
+                return Qnil;
+            }
+        }
+
+        return Qnil;
+    }
+    catch (const XMP_Error& e) {
+        rb_raise(rb_eRuntimeError, "XMP Error during initialization: %s", e.GetErrMsg());
+        return Qnil;
+    }
+    catch (const std::exception& e) {
+        rb_raise(rb_eRuntimeError, "C++ exception during initialization: %s", e.what());
+        return Qnil;
+    }
+    catch (...) {
+        rb_raise(rb_eRuntimeError, "Unknown error during XMP initialization");
+        return Qnil;
+    }
+}
+
+VALUE xmp_terminate(VALUE self)
+{
+    SXMPFiles::Terminate();
+    SXMPMeta::Terminate();
+    return Qnil;
+}
