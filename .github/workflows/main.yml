@@ -1,0 +1,101 @@
+name: Ruby
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Ruby ${{ matrix.ruby }}
+    strategy:
+      matrix:
+        ruby:
+          - '3.3.4'
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run the default task
+        run: bundle exec rake
+      - name: Build the gem
+        run: bundle exec rake build
+      - name: Upload gem
+        uses: actions/upload-artifact@v4
+        with:
+          name: xmp_toolkit_ruby-gem
+          path: pkg/
+
+  push_docker_to_registry:
+    if: ${{ github.event_name != 'pull_request' }}
+    needs:
+      - build
+    name: Push xmp_toolkit_ruby cli Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - name: default
+            file: ./docker/Dockerfile
+            suffix: ""
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Download gem package
+        uses: actions/download-artifact@v4
+        with:
+          name: xmp_toolkit_ruby-gem
+          path: pkg
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: dieters877565/xmp-toolkit-ruby
+          tags: |
+            type=raw,value=${{ inputs.dockerImageTag }},enable=${{ inputs.dockerImageTag != '' }}
+            type=ref,event=branch,suffix=${{matrix.variant.suffix}}
+            type=semver,pattern={{version}}${{matrix.variant.suffix}}
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
+          file: ${{ matrix.variant.file }}
+          push: true
+          # platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # - name: Generate artifact attestation
+      #  uses: actions/attest-build-provenance@v2
+      #  with:
+      #    subject-name: index.docker.io/dieters877565/xmp-toolkit-ruby
+      #    subject-digest: ${{ steps.push.outputs.digest }}
+      #    push-to-registry: true

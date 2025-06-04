@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "xmp_toolkit_ruby"
+
+require "xmp_toolkit_ruby/cli"
+
+XmpToolkitRuby::CLI.start(ARGV)
