@@ -158,7 +158,7 @@ RSpec.describe XmpToolkitRuby do
     expect(actual_xml.to_s).to eq(expected_xml.to_s)
   end
 
-  it "can ovverride existing XMP data" do
+  it "can override existing XMP data" do
     new_xmp = <<~XMP
         <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="XMP Core 6.0.0">
         <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
