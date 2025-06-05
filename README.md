@@ -147,7 +147,7 @@ xmp_toolkit_ruby print_xmp BlueSquare.png
 xmp_toolkit_ruby print_xmp BlueSquare.png xmp_metadata.xml
 
 # Update XMP metadata (replace/merge)
-xmp_toolkit_ruby update_xmp BlueSquare.png xmp_metadata.xml --override
+xmp_toolkit_ruby override_xmp --override BlueSquare.png xmp_metadata.xml 
 ```
 
 ---
