@@ -54,6 +54,8 @@ When OpenAI Codex helps create a PR, please ensure it:
 4. Includes screenshots for UI changes implemented with OpenAI Codex
 5. Keeps PRs focused on a single concern as specified in Agents.md
 6. Use conventional commit messages according to `.github/git-commit-instructions.md`.
+7. Primary Language: All commit messages, code comments, pull request descriptions, and branch names must be written in
+   English.
 
 ## Programmatic Checks for OpenAI Codex
 
