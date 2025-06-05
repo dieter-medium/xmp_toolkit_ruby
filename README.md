@@ -133,6 +133,17 @@ XmpToolkitRuby.xmp_to_file(
 )
 ```
 
+If you built the XMP Toolkit yourself or store the plugins elsewhere,
+set the `XMP_TOOLKIT_PLUGINS_PATH` environment variable so the gem can
+locate the PDF handler:
+
+```bash
+export XMP_TOOLKIT_PLUGINS_PATH=/path/to/XMP-Toolkit-SDK/XMPFilesPlugins/PDF_Handler/<platform>
+```
+
+Run your Ruby code or CLI commands in the same shell so this variable is
+visible.
+
 ---
 
 ### CLI
