@@ -43,13 +43,17 @@ module XmpToolkitRuby
       raise Thor::Error, "An unexpected error occurred: #{e.message}"
     end
 
-    desc "override_xmp FILE_PATH XML_FILE_PATH", "Overrides XMP metadata in FILE_PATH with content from XML_FILE_PATH."
+    desc "override_xmp FILE_PATH XML_FILE_PATH", "Overrides or merges XMP metadata in FILE_PATH with content from XML_FILE_PATH."
     long_desc <<-LONGDESC
-      This command will replace the existing XMP metadata in FILE_PATH
+      This command will either replace or merge the XMP metadata in FILE_PATH
       with the XMP metadata provided in XML_FILE_PATH.
+
+      When using --no-override (the default), new properties are added and existing ones updated.
+      When using --override, all existing XMP metadata is replaced with the new content.
 
       The content of XML_FILE_PATH will be validated as XML before attempting to write.
     LONGDESC
+    method_option :override, type: :boolean, default: false, desc: "Completely replace existing XMP instead of merging"
 
     def override_xmp(file_path, xml_file_path)
       raise Thor::Error, "XML file not found: #{xml_file_path}" unless File.exist?(xml_file_path)
@@ -68,8 +72,10 @@ module XmpToolkitRuby
       end
 
       # The XmpToolkitRuby.xmp_to_file method itself will call check_file! for file_path
-      XmpToolkitRuby.xmp_to_file(file_path, xml_content, override: true)
-      puts "Successfully overrode XMP metadata in #{file_path} with content from #{xml_file_path}."
+      XmpToolkitRuby.xmp_to_file(file_path, xml_content, override: options[:override])
+
+      mode = options[:override] ? "overrode" : "merged"
+      puts "Successfully #{mode} XMP metadata in #{file_path} with content from #{xml_file_path}."
     rescue XmpToolkitRuby::FileNotFoundError => e
       raise Thor::Error, "Error: #{e.message}"
     rescue Thor::Error # Re-raise Thor errors directly
