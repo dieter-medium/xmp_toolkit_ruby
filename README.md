@@ -22,8 +22,9 @@ A precompiled extension may be available for some platforms.
 
 ### 1. Get the Adobe XMP Toolkit
 
-First, clone and prepare the Adobe XMP Toolkit SDK.  
-**Linux example (adjust paths/versions as needed):**
+First, clone and prepare the Adobe XMP Toolkit SDK.
+
+#### Linux example (adjust paths/versions as needed)
 
 ```bash
 export XMP_TOOLKIT_SDK_VERSION=2025.03
@@ -61,6 +62,81 @@ cd build
 make
 ```
 
+#### macOS example
+
+When you copy and paste the following commands, make sure that during the paste nothing got escaped (e.g.  `{` becomes
+`\{`).
+
+```bash
+export XMP_TOOLKIT_SDK_VERSION=2025.03
+
+xcode-select --install # Ensure Xcode command line tools are selected
+
+# within a directory of your choice
+
+mkdir XMP-Toolkit-SDK
+
+cd XMP-Toolkit-SDK
+curl -LO https://github.com/adobe/XMP-Toolkit-SDK/archive/refs/tags/v${XMP_TOOLKIT_SDK_VERSION}.tar.gz 
+tar -xzf v${XMP_TOOLKIT_SDK_VERSION}.tar.gz --strip-components=1
+
+# Prepare required third-party libraries
+cd third-party
+
+# zlib
+cd zlib
+curl -O https://zlib.net/zlib.tar.gz
+tar --strip-components=1 -xzf zlib.tar.gz
+cd ..
+
+# expat
+cd expat
+curl -LO https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.gz
+tar --strip-components=1  -xzf expat-2.5.0.tar.gz
+cd ../..
+
+# cmake
+cd tools/cmake
+mkdir  bin
+cd bin
+curl -LO https://cmake.org/files/v3.15/cmake-3.15.5-Darwin-x86_64.tar.gz
+tar --strip-components=1  -xzf cmake-3.15.5-Darwin-x86_64.tar.gz
+cd ../../..
+
+cd build
+./GenerateXMPToolkitSDK_mac.sh
+
+# choose 3 => Generate XMPToolkitSDK Static  64
+
+
+cd xcode/static/universal/
+
+# I needed to patch SDKROOT from macOS 13.1 SDK to 15.1 SDK in two places inside the Xcode project file:
+# 
+# From:
+# SDKROOT = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk;
+#
+# To:
+# SDKROOT = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk;
+#
+# The following sed script replaces both occurrences in-place, backing up the original file with a .bak extension:
+#
+# Usage:
+#   sed -i.bak -E 's|(SDKROOT = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX)13\.1(\.sdk;)|\115.1\2|g' ./XMPToolkitSDK64.xcodeproj/project.pbxproj
+#
+# Explanation:
+# - The regex captures the prefix and suffix around "13.1" to ensure only the SDK version number is replaced.
+# - The 'g' flag ensures all matching lines (both places) are updated.
+
+
+# Build Debug configuration
+xcodebuild -scheme ALL_BUILD -configuration Debug build
+
+# Build Release configuration
+xcodebuild -scheme ALL_BUILD -configuration Release build
+
+```
+
 **See [Adobe’s docs](https://github.com/adobe/XMP-Toolkit-SDK) for details on other platforms.**
 
 ---
@@ -70,14 +146,21 @@ make
 **Bundler:**
 
 ```bash
+# for linux 
 bundle config set --local build.xmp_toolkit_ruby "--with-xmp-lib=/path/to/XMP-Toolkit-SDK/public/libraries/i80386linux_x64/debug --with-xmp-include=/path/to/XMP-Toolkit-SDK/public/include"
+# for macOS
+bundle config set --local build.xmp_toolkit_ruby "--with-xmp-lib=/path/to/XMP-Toolkit-SDK/public/libraries/macintosh/universal/Debug --with-xmp-include=/path/to/XMP-Toolkit-SDK/public/include"
+
 bundle add xmp_toolkit_ruby
 ```
 
 **Or, with plain RubyGems:**
 
 ```bash
-gem install xmp_toolkit_ruby --   --with-xmp-lib /path/to/XMP-Toolkit-SDK/public/libraries/i80386linux_x64/debug   --with-xmp-include /path/to/XMP-Toolkit-SDK/public/include
+# for linux 
+gem install xmp_toolkit_ruby -- --with-xmp-lib /path/to/XMP-Toolkit-SDK/public/libraries/i80386linux_x64/debug --with-xmp-include /path/to/XMP-Toolkit-SDK/public/include
+# for macOS
+gem install xmp_toolkit_ruby -- --with-xmp-lib /path/to/XMP-Toolkit-SDK/public/libraries/macintosh/universal/Debug --with-xmp-include /path/to/XMP-Toolkit-SDK/public/include
 ```
 
 _Replace paths as needed for your environment._
