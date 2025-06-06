@@ -20,4 +20,6 @@ Rake::ExtensionTask.new("xmp_toolkit_ruby", GEMSPEC) do |ext|
   ext.lib_dir = "lib/xmp_toolkit_ruby"
 end
 
+Dir.glob("tasks/*.rake").each { |r| load r }
+
 task default: %i[clobber compile spec rubocop]
