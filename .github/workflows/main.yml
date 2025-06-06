@@ -96,9 +96,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # - name: Generate artifact attestation
-      #  uses: actions/attest-build-provenance@v2
-      #  with:
-      #    subject-name: index.docker.io/dieters877565/xmp-toolkit-ruby
-      #    subject-digest: ${{ steps.push.outputs.digest }}
-      #    push-to-registry: true
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: index.docker.io/dieters877565/xmp-toolkit-ruby
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
