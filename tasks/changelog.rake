@@ -27,5 +27,3 @@ namespace :changelog do
     puts "✅ Replaced generated section in CHANGELOG.md"
   end
 end
-
-Dir.glob("tasks/*.rake").each { |r| load r }
