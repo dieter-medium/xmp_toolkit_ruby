@@ -1,6 +1,95 @@
 #include "xmp_toolkit.hpp"
+#include <mutex>
+
+static std::mutex sdk_init_mutex;
+static bool sdk_initialized = false;
+static bool terminate_registered = false;
 
 
+static void terminate_sdk_internal() {
+    std::lock_guard<std::mutex> guard(sdk_init_mutex);
+    if (sdk_initialized) {
+        SXMPFiles::Terminate();
+        SXMPMeta::Terminate();
+        sdk_initialized = false;
+    }
+}
+
+// Register termination at Ruby exit
+static void register_terminate_at_exit() {
+    if (terminate_registered) {
+        return; // Already registered
+    }
+
+    terminate_registered = true;
+
+    rb_set_end_proc(
+        [](VALUE) {
+            terminate_sdk_internal();
+        },
+        Qnil
+    );
+}
+
+static void ensure_sdk_initialized() {
+    std::lock_guard<std::mutex> guard(sdk_init_mutex);
+
+    if (sdk_initialized) {
+        return;
+    }
+
+    try {
+        if (!SXMPMeta::Initialize()) {
+            rb_raise(rb_eRuntimeError, "Failed to initialize XMP Toolkit metadata");
+            return;
+        }
+
+         sdk_initialized = true;
+         register_terminate_at_exit();
+
+        // Look up XmpToolkitRuby::PLUGINS_PATH if defined
+        VALUE xmp_module = rb_const_get(rb_cObject, rb_intern("XmpToolkitRuby"));
+        if (rb_const_defined(xmp_module, rb_intern("PLUGINS_PATH"))) {
+            VALUE plugins_path = rb_const_get(xmp_module, rb_intern("PLUGINS_PATH"));
+
+            if (TYPE(plugins_path) == T_STRING) {
+                const char* path = StringValueCStr(plugins_path);
+                XMP_OptionBits options = 0;
+                options |= kXMPFiles_ServerMode;
+
+                if (!SXMPFiles::Initialize(options, path)) {
+                    rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files with plugin path");
+                    return;
+                }
+            }
+            else {
+                if (!SXMPFiles::Initialize()) {
+                    rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files without plugin path");
+                    return;
+                }
+            }
+        } else {
+            if (!SXMPFiles::Initialize()) {
+                rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files (PLUGINS_PATH not defined)");
+                return;
+            }
+        }
+
+        return;
+    }
+    catch (const XMP_Error& e) {
+        rb_raise(rb_eRuntimeError, "XMP Error during initialization: %s", e.GetErrMsg());
+        return;
+    }
+    catch (const std::exception& e) {
+        rb_raise(rb_eRuntimeError, "C++ exception during initialization: %s", e.what());
+        return;
+    }
+    catch (...) {
+        rb_raise(rb_eRuntimeError, "Unknown error during XMP initialization");
+        return;
+    }
+}
 
 bool xmp_meta_error_callback(
                                        void *             clientContext,
@@ -184,7 +273,6 @@ VALUE write_xmp_to_file(int argc, VALUE* argv, VALUE self){
 }
 
 VALUE get_xmp_from_file(VALUE self, VALUE rb_filename)
-{
     Check_Type(rb_filename, T_STRING);
     const char* fileName = StringValueCStr(rb_filename);
 
@@ -258,64 +346,14 @@ VALUE get_xmp_from_file(VALUE self, VALUE rb_filename)
     }
 }
 
-// xmp_initialize(self, filename)
+// xmp_initialize(self)
 // Initialize the XMP Toolkit and SXMPFiles with an optional PLUGINS_PATH
-VALUE xmp_initialize(VALUE self)
-{
-    try {
-        if (!SXMPMeta::Initialize()) {
-            rb_raise(rb_eRuntimeError, "Failed to initialize XMP Toolkit metadata");
-            return Qnil;
-        }
-
-        // Look up XmpToolkitRuby::PLUGINS_PATH if defined
-        VALUE xmp_module = rb_const_get(rb_cObject, rb_intern("XmpToolkitRuby"));
-        if (rb_const_defined(xmp_module, rb_intern("PLUGINS_PATH"))) {
-            VALUE plugins_path = rb_const_get(xmp_module, rb_intern("PLUGINS_PATH"));
-
-            if (TYPE(plugins_path) == T_STRING) {
-                const char* path = StringValueCStr(plugins_path);
-                XMP_OptionBits options = 0;
-                options |= kXMPFiles_ServerMode;
-
-                if (!SXMPFiles::Initialize(options, path)) {
-                    rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files with plugin path");
-                    return Qnil;
-                }
-            }
-            else {
-                if (!SXMPFiles::Initialize()) {
-                    rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files without plugin path");
-                    return Qnil;
-                }
-            }
-        }
-        else {
-            if (!SXMPFiles::Initialize()) {
-                rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files (PLUGINS_PATH not defined)");
-                return Qnil;
-            }
-        }
-
-        return Qnil;
-    }
-    catch (const XMP_Error& e) {
-        rb_raise(rb_eRuntimeError, "XMP Error during initialization: %s", e.GetErrMsg());
-        return Qnil;
-    }
-    catch (const std::exception& e) {
-        rb_raise(rb_eRuntimeError, "C++ exception during initialization: %s", e.what());
-        return Qnil;
-    }
-    catch (...) {
-        rb_raise(rb_eRuntimeError, "Unknown error during XMP initialization");
-        return Qnil;
-    }
+VALUE xmp_initialize(VALUE self){
+   ensure_sdk_initialized();
+   return Qnil;
 }
 
-VALUE xmp_terminate(VALUE self)
-{
-    SXMPFiles::Terminate();
-    SXMPMeta::Terminate();
+VALUE xmp_terminate(VALUE self){
+    terminate_sdk_internal();
     return Qnil;
 }
