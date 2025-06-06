@@ -31,7 +31,7 @@ static void register_terminate_at_exit() {
     );
 }
 
-static void ensure_sdk_initialized() {
+static void ensure_sdk_initialized(const char* path) {
     std::lock_guard<std::mutex> guard(sdk_init_mutex);
 
     if (sdk_initialized) {
@@ -47,31 +47,18 @@ static void ensure_sdk_initialized() {
          sdk_initialized = true;
          register_terminate_at_exit();
 
-        // Look up XmpToolkitRuby::PLUGINS_PATH if defined
-        VALUE xmp_module = rb_const_get(rb_cObject, rb_intern("XmpToolkitRuby"));
-        if (rb_const_defined(xmp_module, rb_intern("PLUGINS_PATH"))) {
-            VALUE plugins_path = rb_const_get(xmp_module, rb_intern("PLUGINS_PATH"));
+        XMP_OptionBits options = 0;
+        options |= kXMPFiles_ServerMode;
 
-            if (TYPE(plugins_path) == T_STRING) {
-                const char* path = StringValueCStr(plugins_path);
-                XMP_OptionBits options = 0;
-                options |= kXMPFiles_ServerMode;
-
-                if (!SXMPFiles::Initialize(options, path)) {
-                    rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files with plugin path");
-                    return;
-                }
-            }
-            else {
-                if (!SXMPFiles::Initialize()) {
-                    rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files without plugin path");
-                    return;
-                }
-            }
+        if (path) {
+              if (!SXMPFiles::Initialize(options, path)) {
+                  rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files with plugin path");
+                  return;
+              }
         } else {
-            if (!SXMPFiles::Initialize()) {
-                rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files (PLUGINS_PATH not defined)");
-                return;
+            if (!SXMPFiles::Initialize(options)) {
+               rb_raise(rb_eRuntimeError, "Failed to initialize XMP Files without plugin path");
+               return;
             }
         }
 
@@ -89,6 +76,24 @@ static void ensure_sdk_initialized() {
         rb_raise(rb_eRuntimeError, "Unknown error during XMP initialization");
         return;
     }
+}
+
+static void ensure_sdk_initialized() {
+    // Look up XmpToolkitRuby::PLUGINS_PATH if defined
+    VALUE xmp_module = rb_const_get(rb_cObject, rb_intern("XmpToolkitRuby"));
+    if (rb_const_defined(xmp_module, rb_intern("PLUGINS_PATH"))) {
+       VALUE plugins_path = rb_const_get(xmp_module, rb_intern("PLUGINS_PATH"));
+
+       if (TYPE(plugins_path) == T_STRING) {
+          const char* path = StringValueCStr(plugins_path);
+          ensure_sdk_initialized(path);
+          return;
+       }
+    }
+
+    ensure_sdk_initialized(nullptr);
+
+    return;
 }
 
 bool xmp_meta_error_callback(
@@ -272,7 +277,7 @@ VALUE write_xmp_to_file(int argc, VALUE* argv, VALUE self){
     return Qnil;
 }
 
-VALUE get_xmp_from_file(VALUE self, VALUE rb_filename)
+VALUE get_xmp_from_file(VALUE self, VALUE rb_filename){
     Check_Type(rb_filename, T_STRING);
     const char* fileName = StringValueCStr(rb_filename);
 
@@ -348,9 +353,24 @@ VALUE get_xmp_from_file(VALUE self, VALUE rb_filename)
 
 // xmp_initialize(self)
 // Initialize the XMP Toolkit and SXMPFiles with an optional PLUGINS_PATH
-VALUE xmp_initialize(VALUE self){
-   ensure_sdk_initialized();
-   return Qnil;
+VALUE xmp_initialize(int argc, VALUE* argv, VALUE self) {
+    VALUE arg = Qnil;
+
+    if (argc > 0) {
+        arg = argv[0];
+    }
+
+    if (arg != Qnil) {
+       Check_Type(arg, T_STRING);
+       const char* path = StringValueCStr(arg);
+
+        ensure_sdk_initialized(path);
+
+        return Qnil;
+    }
+
+    ensure_sdk_initialized();
+    return Qnil;
 }
 
 VALUE xmp_terminate(VALUE self){

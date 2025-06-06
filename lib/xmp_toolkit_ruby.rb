@@ -132,10 +132,13 @@ module XmpToolkitRuby
     #
     # This method should wrap any calls to the native `XmpToolkitRuby::XmpToolkit` methods.
     #
+    # @param path [String, nil] (nil) Optional path to the XMP Toolkit plugins directory.
+    #   If `nil` or not provided, it defaults to `PLUGINS_PATH`.
     # @yield The block of code to execute while the XMP Toolkit is initialized.
     # @return The result of the yielded block.
-    def with_init(&block)
-      XmpToolkitRuby::XmpToolkit.initialize_xmp
+    def with_init(path = nil, &block)
+      XmpToolkitRuby::XmpToolkit.initialize_xmp(path || PLUGINS_PATH)
+
       block.call
     ensure
       XmpToolkitRuby::XmpToolkit.terminate

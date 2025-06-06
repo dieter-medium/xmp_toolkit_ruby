@@ -55,8 +55,8 @@ bool xmp_file_error_callback(
 );
 
 // Initialize SXMPMeta + SXMPFiles, installing callbacks.
-// Returns Qtrue or raises a Ruby exception.
-VALUE xmp_initialize(VALUE self);
+// If PLUGINS_PATH is defined, it will be used to initialize the XMP Toolkit.
+VALUE xmp_initialize(int argc, VALUE* argv, VALUE self);
 
 // Terminate SXMPFiles + SXMPMeta.
 VALUE xmp_terminate(VALUE self);

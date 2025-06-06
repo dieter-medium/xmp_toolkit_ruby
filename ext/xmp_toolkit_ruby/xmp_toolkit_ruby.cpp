@@ -27,7 +27,7 @@ void Init_xmp_toolkit_ruby()
    rb_define_singleton_method(mXMPToolkit,
                               "initialize_xmp",
                               RUBY_METHOD_FUNC(xmp_initialize),
-                              0);
+                              -1);
    rb_define_singleton_method(mXMPToolkit,
                               "terminate",
                               RUBY_METHOD_FUNC(xmp_terminate),
