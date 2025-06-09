@@ -20,6 +20,8 @@ VALUE xmpwrapper_open_file(int argc, VALUE *argv, VALUE self);
 VALUE xmp_file_info(VALUE self);
 VALUE xmp_packet_info(VALUE self);
 
+VALUE xmp_meta(VALUE self);
+
 VALUE xmpwrapper_set_property(VALUE self, VALUE rb_ns, VALUE rb_prop, VALUE rb_value);
 VALUE xmpwrapper_update_localized_text(int argc, VALUE *argv, VALUE self);
 

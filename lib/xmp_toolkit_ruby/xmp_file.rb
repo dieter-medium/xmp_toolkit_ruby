@@ -73,6 +73,30 @@ module XmpToolkitRuby
       @packet_info ||= @xmp_wrapper.packet_info
     end
 
+    def meta
+      tmp_meta = @xmp_wrapper.meta
+      return {} if tmp_meta.nil? || tmp_meta.empty?
+
+      doc = Nokogiri::XML(tmp_meta)
+      pis = doc.xpath("//processing-instruction('xpacket')")
+
+      begin_pi = pis.find { |pi| pi.content =~ /\Abegin=/ }
+
+      begin_attrs = begin_pi.content.scan(/(\w+)="([^"]*)"/).to_h
+      begin_value = begin_attrs["begin"]
+      packet_id = begin_attrs["id"]
+
+      pis.remove
+      inner_xml = doc.root.to_xml
+
+      {
+        "begin" => begin_value,
+        "packet_id" => packet_id,
+        "xmp_data" => inner_xml,
+        "xmp_data_orig" => tmp_meta
+      }
+    end
+
     def map_handler_flags(handler_flags)
       return {} if handler_flags.nil?
 

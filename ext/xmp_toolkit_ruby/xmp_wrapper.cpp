@@ -154,6 +154,25 @@ VALUE xmp_packet_info(VALUE self){
 
 }
 
+VALUE
+xmp_meta(VALUE self) {
+  XMPWrapper *wrapper;
+  TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+
+  get_xmp(wrapper);
+
+  if (!wrapper->xmpMetaDataLoaded) {
+    rb_raise(rb_eRuntimeError, "No XMP metadata loaded");
+  }
+
+  std::string xmpString;
+  wrapper->xmpMeta->SerializeToBuffer(&xmpString);
+
+  VALUE rb_xmp_data = rb_str_new_cstr(xmpString.c_str());
+
+  return rb_xmp_data;
+}
+
 static XMP_DateTime datetime_to_xmp(VALUE rb_value) {
   XMP_DateTime dt;
 

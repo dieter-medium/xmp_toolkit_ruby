@@ -164,11 +164,11 @@ RSpec.describe XmpToolkitRuby::XmpFile do
     it "returns file information" do
       described_class.with_xmp_file(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_smart_handler)) do |xmp_file|
         expect(xmp_file.file_info).to eq({
-          "format" => :kXMP_PDFFile,
-          "format_orig" => 1_346_651_680,
-          "handler_flags" => %i[can_inject_xmp can_expand can_rewrite allows_only_xmp returns_raw_packet handler_owns_file allows_safe_update needs_preloading],
-          "handler_flags_orig" => 17_255
-        })
+                                           "format" => :kXMP_PDFFile,
+                                           "format_orig" => 1_346_651_680,
+                                           "handler_flags" => %i[can_inject_xmp can_expand can_rewrite allows_only_xmp returns_raw_packet handler_owns_file allows_safe_update needs_preloading],
+                                           "handler_flags_orig" => 17_255
+                                         })
       end
     end
   end
@@ -177,15 +177,47 @@ RSpec.describe XmpToolkitRuby::XmpFile do
     it "returns packet information" do
       described_class.with_xmp_file(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_smart_handler)) do |xmp_file|
         expect(xmp_file.packet_info).to eq({
-          "char_form" => 0,
-          "has_wrapper" => true,
-          "length" => -1,
-          "offset" => -1,
-          "pad" => 0,
-          "pad_size" => 2049,
-          "writeable" => true
-        })
+                                             "char_form" => 0,
+                                             "has_wrapper" => true,
+                                             "length" => -1,
+                                             "offset" => -1,
+                                             "pad" => 0,
+                                             "pad_size" => 2049,
+                                             "writeable" => true
+                                           })
       end
+    end
+  end
+
+  describe "#meta" do
+    it "returns metadata" do
+      expected_xmp = <<~XMP
+        <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="XMP Core 6.0.0">
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+            <rdf:Description xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:pdf="http://ns.adobe.com/pdf/1.3/" xmlns:dc="http://purl.org/dc/elements/1.1/" rdf:about="">
+              <xmp:CreateDate>2025-04-02T14:03:42Z</xmp:CreateDate>
+              <xmp:CreatorTool>Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/134.0.0.0 Safari/537.36</xmp:CreatorTool>
+              <xmp:ModifyDate>2025-04-02T14:03:42Z</xmp:ModifyDate>
+              <pdf:Producer>Skia/PDF m134</pdf:Producer>
+              <dc:title>
+                <rdf:Alt>
+                  <rdf:li xml:lang="x-default">Golden Sample PDF</rdf:li>
+                </rdf:Alt>
+              </dc:title>
+            </rdf:Description>
+          </rdf:RDF>
+        </x:xmpmeta>
+      XMP
+
+      actual_xmp = nil
+      described_class.with_xmp_file(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_smart_handler)) do |xmp_file|
+        actual_xmp = xmp_file.meta["xmp_data"]
+      end
+
+      actual_xml = Nokogiri::XML(actual_xmp, &:noblanks)
+      expected_xml = Nokogiri::XML(expected_xmp, &:noblanks)
+
+      expect(actual_xml.to_s).to eq(expected_xml.to_s)
     end
   end
 
