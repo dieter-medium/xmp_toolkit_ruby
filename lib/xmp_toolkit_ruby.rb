@@ -5,6 +5,7 @@ require_relative "xmp_toolkit_ruby/xmp_toolkit_ruby"
 
 require "nokogiri"
 require "rbconfig"
+require "date"
 
 # The `XmpToolkitRuby` module serves as a Ruby interface to Adobe's XMP Toolkit,
 # a native C++ library. This module allows Ruby applications to read and write
@@ -34,6 +35,8 @@ module XmpToolkitRuby
   require_relative "xmp_toolkit_ruby/xmp_file_format"
   require_relative "xmp_toolkit_ruby/namespaces"
   require_relative "xmp_toolkit_ruby/xmp_file_handler_flags"
+  require_relative "xmp_toolkit_ruby/xmp_file"
+  require_relative "xmp_toolkit_ruby/xmp_value"
 
   # The `PLUGINS_PATH` constant defines the directory where the XMP Toolkit
   # should look for its plugins, particularly the PDF handler.
@@ -144,6 +147,39 @@ module XmpToolkitRuby
       XmpToolkitRuby::XmpToolkit.terminate
     end
 
+    # Checks if the XMP Toolkit SDK has been initialized.
+    # This method is useful for ensuring that the SDK is ready for use
+    #
+    def sdk_initialized?
+      XmpToolkitRuby::XmpToolkit.initialized?
+    end
+
+    # Validates file accessibility before performing read or write operations.
+    #
+    # Checks for:
+    # - Nil file path.
+    # - File existence.
+    # - File readability (if `need_to_read` is true).
+    # - File writability (if `need_to_write` is true).
+    #
+    # @param file_path [String] The path to the file to check.
+    # @param need_to_read [Boolean] (true) Whether the file needs to be readable.
+    # @param need_to_write [Boolean] (false) Whether the file needs to be writable.
+    # @raise [FileNotFoundError] If any of the checks fail.
+    # @return [void]
+    # @api private
+    def check_file!(file_path, need_to_read: true, need_to_write: false)
+      if file_path.nil?
+        raise FileNotFoundError, "File path cannot be nil"
+      elsif !File.exist?(file_path)
+        raise FileNotFoundError, "File not found: #{file_path}"
+      elsif need_to_read && !File.readable?(file_path)
+        raise FileNotFoundError, "File exists but is not readable: #{file_path}"
+      elsif need_to_write && !File.writable?(file_path)
+        raise FileNotFoundError, "File exists but is not writable: #{file_path}"
+      end
+    end
+
     private
 
     # Parses raw XMP data string to extract `xpacket` processing instruction
@@ -210,31 +246,5 @@ module XmpToolkitRuby
     end
 
     # rubocop: enable Metrics/AbcSize, Metrics/MethodLength
-
-    # Validates file accessibility before performing read or write operations.
-    #
-    # Checks for:
-    # - Nil file path.
-    # - File existence.
-    # - File readability (if `need_to_read` is true).
-    # - File writability (if `need_to_write` is true).
-    #
-    # @param file_path [String] The path to the file to check.
-    # @param need_to_read [Boolean] (true) Whether the file needs to be readable.
-    # @param need_to_write [Boolean] (false) Whether the file needs to be writable.
-    # @raise [FileNotFoundError] If any of the checks fail.
-    # @return [void]
-    # @api private
-    def check_file!(file_path, need_to_read: true, need_to_write: false)
-      if file_path.nil?
-        raise FileNotFoundError, "File path cannot be nil"
-      elsif !File.exist?(file_path)
-        raise FileNotFoundError, "File not found: #{file_path}"
-      elsif need_to_read && !File.readable?(file_path)
-        raise FileNotFoundError, "File exists but is not readable: #{file_path}"
-      elsif need_to_write && !File.writable?(file_path)
-        raise FileNotFoundError, "File exists but is not writable: #{file_path}"
-      end
-    end
   end
 end

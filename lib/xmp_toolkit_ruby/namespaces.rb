@@ -66,6 +66,7 @@ module XmpToolkitRuby
     XMP_NS_PDFA_TYPE = "http://www.aiim.org/pdfa/ns/type#"
     XMP_NS_PDFA_FIELD = "http://www.aiim.org/pdfa/ns/field#"
     XMP_NS_PDFA_ID = "http://www.aiim.org/pdfa/ns/id/"
+    XMP_NS_PDFUA_ID = "http://www.aiim.org/pdfua/ns/id/"
     XMP_NS_PDFA_EXTENSION = "http://www.aiim.org/pdfa/ns/extension/"
 
     XMP_NS_PDFX = "http://ns.adobe.com/pdfx/1.3/"

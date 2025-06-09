@@ -214,6 +214,32 @@ XmpToolkitRuby.xmp_to_file(
   new_xmp,
   override: true # Set to false to upsert/merge instead of replacing
 )
+
+# fine-grained control
+
+# if you want to take full control over the SDK lifecycle
+# you can use the XmpToolkitRuby::XmpToolkit module directly:
+XmpToolkitRuby::XmpToolkit.initialize_xmp(XmpToolkitRuby::PLUGINS_PATH)
+# in this case you can call here 
+XmpToolkitRuby::XmpFile.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfua"
+
+XmpToolkitRuby::XmpFile.with_xmp_file(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_update, :open_use_smart_handler, auto_terminate_toolkit: false)) do |xmp_file|
+  # in case the lifecycle is managed by with_xmp_file
+  XmpToolkitRuby::XmpFile.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfua"
+
+  xmp_file.update_localized_property schema_ns: XmpToolkitRuby::Namespaces::XMP_NS_DC,
+                                     alt_text_name: "title",
+                                     generic_lang: "en",
+                                     specific_lang: "en-US",
+                                     item_value: "Hello world",
+                                     options: 0
+
+  xmp_file.update_property XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "part", "1"
+end
+
+# if auto_terminate_toolkit is false, you must call
+XmpToolkitRuby::XmpToolkit.terminate
+# to clean up resources
 ```
 
 If you built the XMP Toolkit yourself or store the plugins elsewhere,
@@ -226,6 +252,109 @@ export XMP_TOOLKIT_PLUGINS_PATH=/path/to/XMP-Toolkit-SDK/XMPFilesPlugins/PDF_Han
 
 Run your Ruby code or CLI commands in the same shell so this variable is
 visible.
+
+#### Fine-grained Control with `XmpFile`
+
+The `XmpToolkitRuby::XmpFile` class exposes low-level access to XMP metadata files, allowing you to:
+
+- Register new or custom namespaces to extend XMP property support
+- Open files with precise control over file open modes and handlers
+- Update localized properties (e.g., multi-language text with alternatives)
+- Update simple properties in specified namespaces
+- Use blocks to ensure file handles are properly closed and changes saved
+
+In order to work properly you need to ensure the XMP Toolkit is initialized:
+
+```ruby
+XmpToolkitRuby::XmpToolkit.initialize_xmp(XmpToolkitRuby::PLUGINS_PATH)
+```
+
+Alternatively, you can use the `with_xmp_file` method which automatically initializes and terminates the toolkit.
+
+##### Registering a Namespace
+
+Before working with properties in custom or less-common namespaces, you need to register them with a prefix:
+
+```ruby
+XmpToolkitRuby::XmpFile.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfua"
+```
+
+This allows the SDK to recognize and correctly handle properties within that namespace.
+
+##### Opening a File with Custom Flags
+
+You can open an XMP file with specific flags to control behavior:
+
+- `open_for_update`: Open the file for modifying metadata
+- `open_use_smart_handler`: Use smart handlers for better metadata processing
+
+Flags are combined via the `bitmask_for` helper method:
+
+```ruby
+flags = XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_update, :open_use_smart_handler)
+```
+
+Open the file in a block to ensure safe usage:
+
+```ruby
+XmpToolkitRuby::XmpFile.with_xmp_file(filename, open_flags: flags) do |xmp_file|
+  # work with xmp_file inside this block
+end
+```
+
+##### Updating a Localized Property
+
+Localized properties support multiple language alternatives. Use `update_localized_property` with options:
+
+- `schema_ns`: Namespace URI for the schema (e.g., Dublin Core)
+- `alt_text_name`: The property name that holds alternative texts
+- `generic_lang`: Language tag for the generic language (e.g., `"en"`)
+- `specific_lang`: Specific locale variant (e.g., `"en-US"`)
+- `item_value`: The actual text value to set
+- `options`: Optional flags (typically 0)
+
+Example:
+
+```ruby
+xmp_file.update_localized_property(
+  schema_ns: XmpToolkitRuby::Namespaces::XMP_NS_DC,
+  alt_text_name: "title",
+  generic_lang: "en",
+  specific_lang: "en-US",
+  item_value: "Hello world",
+  options: 0
+)
+```
+
+This sets or updates the localized `"title"` property in English (US).
+
+##### Updating a Simple Property
+
+For simpler property updates without localization, use `update_property`:
+
+```ruby
+xmp_file.update_property(
+  XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID,
+  "part",
+  "1"
+)
+```
+
+This updates the `"part"` property within the PDF/UA ID namespace.
+
+---
+
+##### Summary
+
+The fine-grained control API empowers you to work precisely with metadata:
+
+- Register custom namespaces for extended support
+- Open files with control over update modes and handlers
+- Modify localized text properties with language variants
+- Update simple XMP properties by namespace and name
+
+Using these methods allows sophisticated metadata management, crucial for professional publishing, digital asset
+management, or compliance workflows.
 
 ---
 
@@ -285,3 +414,5 @@ Bug reports and pull requests are welcome on [GitHub](https://github.com/DieterS
 ## License
 
 This project is open source, licensed under the [MIT License](https://opensource.org/licenses/MIT).
+
+---
