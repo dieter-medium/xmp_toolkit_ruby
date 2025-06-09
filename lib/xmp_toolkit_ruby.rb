@@ -145,6 +145,13 @@ module XmpToolkitRuby
       XmpToolkitRuby::XmpToolkit.terminate
     end
 
+    # Checks if the XMP Toolkit SDK has been initialized.
+    # This method is useful for ensuring that the SDK is ready for use
+    #
+    def sdk_initialized?
+      XmpToolkitRuby::XmpToolkit.initialized?
+    end
+
     # Validates file accessibility before performing read or write operations.
     #
     # Checks for:
