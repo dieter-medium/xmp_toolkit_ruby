@@ -1,11 +1,12 @@
 # frozen_string_literal: true
+
 require "shellwords"
 
 EXTS = %w[c cc cpp cxx h hh hpp hxx].freeze
 SDK_PATH = "ext/xmp_toolkit_ruby/XMP-Toolkit-SDK/"
 
 def clang_format_files
-  Dir.glob("ext/**/*.{#{EXTS.join(',')}}")
+  Dir.glob("ext/**/*.{#{EXTS.join(",")}}")
      .select { |file| File.file?(file) && !file.start_with?(SDK_PATH) }
 end
 

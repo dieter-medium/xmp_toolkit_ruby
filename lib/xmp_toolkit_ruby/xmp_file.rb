@@ -40,6 +40,7 @@ module XmpToolkitRuby
       return if open?
 
       raise ArgumentError, "File path must be a String or Pathname" unless File.readable?(@file_path)
+
       warn("XmpToolkitRuby not initialized default Plugin paths #{XmpToolkitRuby::PLUGINS_PATH} will be used") unless XmpToolkitRuby::XmpToolkit.initialized?
 
       @xmp_wrapper.open(file_path, open_flags).tap { @open = true }
@@ -76,7 +77,6 @@ module XmpToolkitRuby
         item_value:,
         options:
       )
-
     end
 
     def close
@@ -87,4 +87,3 @@ module XmpToolkitRuby
     end
   end
 end
-

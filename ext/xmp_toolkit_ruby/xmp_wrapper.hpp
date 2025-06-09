@@ -1,6 +1,8 @@
 #ifndef XMP_WRAPPER_HPP
 #define XMP_WRAPPER_HPP
 
+#include <mutex>
+
 struct XMPWrapper {
   SXMPMeta *xmpMeta;
   SXMPFiles *xmpFile;

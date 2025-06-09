@@ -5,6 +5,7 @@ require_relative "xmp_toolkit_ruby/xmp_toolkit_ruby"
 
 require "nokogiri"
 require "rbconfig"
+require "date"
 
 # The `XmpToolkitRuby` module serves as a Ruby interface to Adobe's XMP Toolkit,
 # a native C++ library. This module allows Ruby applications to read and write
@@ -35,6 +36,7 @@ module XmpToolkitRuby
   require_relative "xmp_toolkit_ruby/namespaces"
   require_relative "xmp_toolkit_ruby/xmp_file_handler_flags"
   require_relative "xmp_toolkit_ruby/xmp_file"
+  require_relative "xmp_toolkit_ruby/xmp_value"
 
   # The `PLUGINS_PATH` constant defines the directory where the XMP Toolkit
   # should look for its plugins, particularly the PDF handler.
@@ -244,6 +246,5 @@ module XmpToolkitRuby
     end
 
     # rubocop: enable Metrics/AbcSize, Metrics/MethodLength
-
   end
 end

@@ -41,7 +41,7 @@ module XmpToolkitRuby
       end
 
       def flags_for(bitmask)
-        FLAGS.select { |_, bit| (bitmask & bit) != 0 }.keys
+        FLAGS.select { |_, bit| bitmask.anybits?(bit) }.keys
       end
 
       def contains?(bitmask, flag)
@@ -64,13 +64,11 @@ module XmpToolkitRuby
                 else
                   raise ArgumentError, "Invalid flag type: #{flag.class}"
                 end
-          unless val
-            raise ArgumentError, "Unknown flag: #{flag.inspect}"
-          end
+          raise ArgumentError, "Unknown flag: #{flag.inspect}" unless val
+
           mask | val
         end
       end
     end
   end
 end
-
