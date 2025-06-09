@@ -116,9 +116,9 @@ xmp_file_info(VALUE self) {
   XMP_OptionBits openFlags, handlerFlags;
   bool ok = wrapper->xmpFile->GetFileInfo(0, &openFlags, &format, &handlerFlags);
   if (!ok) {
-     clean_wrapper(wrapper);
-     rb_raise(rb_eRuntimeError, "Failed to get file info");
-     return Qnil;
+    clean_wrapper(wrapper);
+    rb_raise(rb_eRuntimeError, "Failed to get file info");
+    return Qnil;
   }
 
   VALUE result = rb_hash_new();
@@ -129,7 +129,7 @@ xmp_file_info(VALUE self) {
   return result;
 }
 
-VALUE xmp_packet_info(VALUE self){
+VALUE xmp_packet_info(VALUE self) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
 
@@ -146,12 +146,11 @@ VALUE xmp_packet_info(VALUE self){
   rb_hash_aset(result, rb_str_new_cstr("pad_size"), LONG2NUM(wrapper->xmpPacket->padSize));
 
   rb_hash_aset(result, rb_str_new_cstr("char_form"), UINT2NUM(wrapper->xmpPacket->charForm));
-  rb_hash_aset(result, rb_str_new_cstr("writeable"), wrapper->xmpPacket->writeable ? Qtrue : Qfalse );
-  rb_hash_aset(result, rb_str_new_cstr("has_wrapper"), wrapper->xmpPacket->hasWrapper ? Qtrue : Qfalse );
+  rb_hash_aset(result, rb_str_new_cstr("writeable"), wrapper->xmpPacket->writeable ? Qtrue : Qfalse);
+  rb_hash_aset(result, rb_str_new_cstr("has_wrapper"), wrapper->xmpPacket->hasWrapper ? Qtrue : Qfalse);
   rb_hash_aset(result, rb_str_new_cstr("pad"), UINT2NUM(wrapper->xmpPacket->pad));
 
   return result;
-
 }
 
 VALUE
@@ -210,6 +209,84 @@ static XMP_DateTime datetime_to_xmp(VALUE rb_value) {
   dt.tzMinute = (XMP_Int32)(abs_off_minutes % 60);
 
   return dt;
+}
+
+VALUE
+xmpwrapper_set_meta(int argc, VALUE *argv, VALUE self) {
+  XMPWrapper *wrapper;
+  TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+
+  VALUE rb_xmp_data, kwargs;
+  XMP_OptionBits templateFlags =
+      kXMPTemplate_AddNewProperties | kXMPTemplate_ReplaceExistingProperties | kXMPTemplate_IncludeInternalProperties;
+
+  rb_scan_args(argc, argv, "1:", &rb_xmp_data, &kwargs);
+
+  const char *xmpString = NULL;
+  if (!NIL_P(rb_xmp_data)) {
+    Check_Type(rb_xmp_data, T_STRING);
+    xmpString = StringValueCStr(rb_xmp_data);
+  }
+
+  ID kw_table[1];
+  kw_table[0] = rb_intern("mode");
+
+  VALUE kw_values[1];
+  kw_values[0] = rb_str_new_cstr("upsert");
+
+  rb_get_kwargs(kwargs, kw_table, 0, 1, kw_values);
+
+  VALUE rb_mode_sym = kw_values[0];
+
+  const char *mode_cstr;
+  if (RB_TYPE_P(rb_mode_sym, T_SYMBOL)) {
+    // Convert symbol to string first
+    VALUE mode_str = rb_sym_to_s(rb_mode_sym);
+    mode_cstr = StringValueCStr(mode_str);
+  } else {
+    // Already a string
+    mode_cstr = StringValueCStr(rb_mode_sym);
+  }
+
+  bool override;
+  if (strcmp(mode_cstr, "upsert") == 0) {
+    override = false;
+  } else if (strcmp(mode_cstr, "override") == 0) {
+    override = true;
+  } else {
+    rb_raise(rb_eArgError, "mode must be :upsert or :override (String or Symbol). Got '%s'", mode_cstr);
+    return Qnil;  // unreachable, but for clarity
+  }
+
+  get_xmp(wrapper);
+
+  SXMPMeta newMeta;
+
+  if (xmpString != NULL) {
+    int i;
+    for (i = 0; i < (long)strlen(xmpString) - 10; i += 10) {
+      newMeta.ParseFromBuffer(&xmpString[i], 10, kXMP_ParseMoreBuffers);
+    }
+
+    newMeta.ParseFromBuffer(&xmpString[i], (XMP_StringLen)strlen(xmpString) - i);
+  }
+
+  XMP_DateTime dt;
+  SXMPUtils::CurrentDateTime(&dt);
+  std::string nowStr;
+  SXMPUtils::ConvertFromDate(dt, &nowStr);
+
+  if (xmpString != NULL) {
+    newMeta.SetProperty_Date(kXMP_NS_XMP, "MetadataDate", dt, 0);
+  }
+
+  if (override) {
+    wrapper->xmpMeta->Erase();
+  }
+
+  SXMPUtils::ApplyTemplate(wrapper->xmpMeta, newMeta, templateFlags);
+
+  return Qnil;
 }
 
 VALUE

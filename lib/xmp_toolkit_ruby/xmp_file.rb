@@ -73,6 +73,7 @@ module XmpToolkitRuby
       @packet_info ||= @xmp_wrapper.packet_info
     end
 
+    # rubocop:disable Metrics/AbcSize
     def meta
       tmp_meta = @xmp_wrapper.meta
       return {} if tmp_meta.nil? || tmp_meta.empty?
@@ -97,6 +98,8 @@ module XmpToolkitRuby
       }
     end
 
+    # rubocop:enable Metrics/AbcSize
+
     def map_handler_flags(handler_flags)
       return {} if handler_flags.nil?
 
@@ -112,6 +115,11 @@ module XmpToolkitRuby
       raise "File not open" unless open?
 
       @xmp_wrapper.write
+    end
+
+    def update_meta(xmp_data, mode: :upsert)
+      open
+      @xmp_wrapper.update_meta(xmp_data, mode: mode)
     end
 
     def update_property(namespace, property, value)
