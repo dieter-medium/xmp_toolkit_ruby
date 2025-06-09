@@ -5,7 +5,6 @@ static std::mutex sdk_init_mutex;
 static bool sdk_initialized = false;
 static bool terminate_registered = false;
 
-
 static void terminate_sdk_internal() {
     std::lock_guard<std::mutex> guard(sdk_init_mutex);
     if (sdk_initialized) {
@@ -78,7 +77,12 @@ static void ensure_sdk_initialized(const char* path) {
     }
 }
 
-static void ensure_sdk_initialized() {
+VALUE is_sdk_initialized(VALUE self) {
+    std::lock_guard<std::mutex> guard(sdk_init_mutex);
+    return sdk_initialized ? Qtrue : Qfalse;
+}
+
+void ensure_sdk_initialized() {
     // Look up XmpToolkitRuby::PLUGINS_PATH if defined
     VALUE xmp_module = rb_const_get(rb_cObject, rb_intern("XmpToolkitRuby"));
     if (rb_const_defined(xmp_module, rb_intern("PLUGINS_PATH"))) {
@@ -354,15 +358,13 @@ VALUE get_xmp_from_file(VALUE self, VALUE rb_filename){
 // xmp_initialize(self)
 // Initialize the XMP Toolkit and SXMPFiles with an optional PLUGINS_PATH
 VALUE xmp_initialize(int argc, VALUE* argv, VALUE self) {
-    VALUE arg = Qnil;
+    VALUE rb_path_arg = Qnil;
 
-    if (argc > 0) {
-        arg = argv[0];
-    }
+    rb_scan_args(argc, argv, "01", &rb_path_arg);
 
-    if (arg != Qnil) {
-       Check_Type(arg, T_STRING);
-       const char* path = StringValueCStr(arg);
+    if (rb_path_arg != Qnil) {
+       Check_Type(rb_path_arg, T_STRING);
+       const char* path = StringValueCStr(rb_path_arg);
 
         ensure_sdk_initialized(path);
 

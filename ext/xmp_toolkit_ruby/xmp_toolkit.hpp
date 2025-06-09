@@ -54,6 +54,10 @@ bool xmp_file_error_callback(
     XMP_StringPtr      message
 );
 
+void ensure_sdk_initialized();
+
+VALUE is_sdk_initialized(VALUE self);
+
 // Initialize SXMPMeta + SXMPFiles, installing callbacks.
 // If PLUGINS_PATH is defined, it will be used to initialize the XMP Toolkit.
 VALUE xmp_initialize(int argc, VALUE* argv, VALUE self);

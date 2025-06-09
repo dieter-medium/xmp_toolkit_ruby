@@ -1,0 +1,88 @@
+# frozen_string_literal: true
+
+module XmpToolkitRuby
+  require_relative "xmp_file_open_flags"
+
+  class XmpFile
+    attr_reader :file_path, :open_flags
+
+    class << self
+      def register_namespace(namespace, suggested_prefix)
+        warn("XmpToolkitRuby not initialized default Plugin paths #{XmpToolkitRuby::PLUGINS_PATH} will be used") unless XmpToolkitRuby::XmpToolkit.initialized?
+
+        XmpWrapper.register_namespace(namespace, suggested_prefix)
+      end
+
+      def with_xmp_file(file_path, open_flags: XmpFileOpenFlags::OPEN_FOR_READ, plugin_path: XmpToolkitRuby::PLUGINS_PATH)
+        XmpToolkitRuby.check_file! file_path, need_to_read: true, need_to_write: XmpFileOpenFlags.contains?(open_flags, XmpFileOpenFlags::OPEN_FOR_UPDATE)
+
+        XmpToolkitRuby::XmpToolkit.initialize_xmp(plugin_path)
+
+        xmp_file = new(file_path, open_flags: open_flags)
+        xmp_file.open
+        yield xmp_file
+      ensure
+        xmp_file.close
+        XmpToolkitRuby::XmpToolkit.terminate
+      end
+    end
+
+    def initialize(file_path, open_flags: XmpFileOpenFlags::OPEN_FOR_READ)
+      @file_path = file_path.to_s
+      @open_flags = open_flags
+      @open = false
+      @xmp_wrapper = XmpWrapper.new
+    end
+
+    def open
+      return if open?
+
+      raise ArgumentError, "File path must be a String or Pathname" unless File.readable?(@file_path)
+      warn("XmpToolkitRuby not initialized default Plugin paths #{XmpToolkitRuby::PLUGINS_PATH} will be used") unless XmpToolkitRuby::XmpToolkit.initialized?
+
+      @xmp_wrapper.open(file_path, open_flags).tap { @open = true }
+    end
+
+    def open?
+      @open
+    end
+
+    def write
+      raise "File not open" unless open?
+
+      @xmp_wrapper.write
+    end
+
+    def update_property(namespace, property, value)
+      open
+      @xmp_wrapper.update_property(namespace, property, value)
+    end
+
+    def update_localized_property(schema_ns:,
+                                  alt_text_name:,
+                                  generic_lang:,
+                                  specific_lang:,
+                                  item_value:,
+                                  options:)
+      open
+
+      @xmp_wrapper.update_localized_property(
+        schema_ns:,
+        alt_text_name:,
+        generic_lang:,
+        specific_lang:,
+        item_value:,
+        options:
+      )
+
+    end
+
+    def close
+      return unless open?
+
+      @open = false
+      @xmp_wrapper.close
+    end
+  end
+end
+
