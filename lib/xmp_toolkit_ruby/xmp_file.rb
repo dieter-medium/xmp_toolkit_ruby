@@ -50,6 +50,40 @@ module XmpToolkitRuby
       @open
     end
 
+    def file_info
+      @file_info ||= begin
+                       info = @xmp_wrapper.file_info
+
+                       handler_flags = info["handler_flags"]
+                       handler_flags_mapped = XmpToolkitRuby::XmpFileHandlerFlags.flags_for(handler_flags)
+
+                       format = info["format"]
+                       format_mapped = XmpToolkitRuby::XmpFileFormat.name_for(format)
+
+                       {
+                         "handler_flags" => handler_flags_mapped,
+                         "handler_flags_orig" => handler_flags,
+                         "format" => format_mapped,
+                         "format_orig" => format
+                       }
+                     end
+    end
+
+    def packet_info
+      @packet_info ||= @xmp_wrapper.packet_info
+    end
+
+    def map_handler_flags(handler_flags)
+      return {} if handler_flags.nil?
+
+      handler_flags_mapped = XmpToolkitRuby::XmpFileHandlerFlags.flags_for(handler_flags)
+
+      {
+        "handler_flags" => handler_flags_mapped,
+        "handler_flags_orig" => handler_flags
+      }
+    end
+
     def write
       raise "File not open" unless open?
 

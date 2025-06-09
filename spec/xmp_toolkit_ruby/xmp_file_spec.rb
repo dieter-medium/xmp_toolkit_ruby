@@ -160,6 +160,35 @@ RSpec.describe XmpToolkitRuby::XmpFile do
     end
   end
 
+  describe "#file_info" do
+    it "returns file information" do
+      described_class.with_xmp_file(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_smart_handler)) do |xmp_file|
+        expect(xmp_file.file_info).to eq({
+          "format" => :kXMP_PDFFile,
+          "format_orig" => 1_346_651_680,
+          "handler_flags" => %i[can_inject_xmp can_expand can_rewrite allows_only_xmp returns_raw_packet handler_owns_file allows_safe_update needs_preloading],
+          "handler_flags_orig" => 17_255
+        })
+      end
+    end
+  end
+
+  describe "#packet_info" do
+    it "returns packet information" do
+      described_class.with_xmp_file(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_smart_handler)) do |xmp_file|
+        expect(xmp_file.packet_info).to eq({
+          "char_form" => 0,
+          "has_wrapper" => true,
+          "length" => -1,
+          "offset" => -1,
+          "pad" => 0,
+          "pad_size" => 2049,
+          "writeable" => true
+        })
+      end
+    end
+  end
+
   describe ".with_xmp_file" do
     it "initializes the sdk" do
       described_class.with_xmp_file(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_smart_handler)) do |_xmp_file|
