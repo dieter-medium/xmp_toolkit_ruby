@@ -222,11 +222,32 @@ module XmpToolkitRuby
       @xmp_wrapper.update_property(namespace, property, value)
     end
 
+    # Retrieve the value of a simple XMP property.
+    #
+    # This will open the file (if not already open), query the underlying
+    # SDK for the given namespace + property, and return whatever value is stored.
+    #
+    # @param namespace [String] Namespace URI of the schema (e.g. "http://ns.adobe.com/photoshop/1.0/")
+    # @param property [String] Property name (without prefix), e.g. "CreatorTool"
+    # @return [String, nil] The value of the property, or nil if not set
+    # @raise [RuntimeError] if the file cannot be opened
     def property(namespace, property)
       open
       @xmp_wrapper.property(namespace, property)
     end
 
+    # Retrieve a localized (alt-text) value from an XMP array.
+    #
+    # Locates the alt-text array identified by
+    # `alt_text_name` in the given `schema_ns`, then returns the string
+    # matching the requested generic and specific language codes.
+    #
+    # @param schema_ns [String] Namespace URI of the alt-text schema
+    # @param alt_text_name [String] The name of the localized text array
+    # @param generic_lang [String] Base language code (e.g. "en")
+    # @param specific_lang [String] Locale variant (e.g. "en-US")
+    # @return [String, nil] The localized string for that locale, or nil if not found
+    # @raise [RuntimeError] if the file cannot be opened
     def localized_property(schema_ns:, alt_text_name:, generic_lang:, specific_lang:)
       open
 
