@@ -150,6 +150,27 @@ RSpec.describe XmpToolkitRuby::XmpFile do
     end
   end
 
+  describe "#localized_property" do
+    it "can retrieve localized text" do
+      actual_value = nil
+      described_class.with_xmp_file(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_smart_handler)) do |xmp_file|
+        actual_value = xmp_file.localized_property(
+          schema_ns: XmpToolkitRuby::Namespaces::XMP_NS_DC,
+          alt_text_name: "title",
+          generic_lang: "en",
+          specific_lang: "en-us"
+        )
+      end
+
+      expect(actual_value).to include({
+        "actual_lang" => "x-default",
+        "exists" => true,
+        "options" => 80,
+        "value" => "Golden Sample PDF"
+      })
+    end
+  end
+
   describe "#update_meta" do
     subject(:xmp_file) { described_class.new(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags::OPEN_FOR_UPDATE | XmpToolkitRuby::XmpFileOpenFlags::OPEN_USE_SMART_HANDLER) }
 

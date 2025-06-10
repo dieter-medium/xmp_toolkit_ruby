@@ -227,6 +227,17 @@ module XmpToolkitRuby
       @xmp_wrapper.property(namespace, property)
     end
 
+    def localized_property(schema_ns:, alt_text_name:, generic_lang:, specific_lang:)
+      open
+
+      @xmp_wrapper.localized_property(
+        schema_ns: schema_ns,
+        alt_text_name: alt_text_name,
+        generic_lang: generic_lang,
+        specific_lang: specific_lang
+      )
+    end
+
     # Update an alternative-text (localized string) property.
     #
     # @param schema_ns [String] Namespace URI of the alt-text schema

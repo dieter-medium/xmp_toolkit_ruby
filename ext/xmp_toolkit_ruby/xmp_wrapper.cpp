@@ -215,6 +215,62 @@ xmpwrapper_get_property(VALUE self, VALUE rb_ns, VALUE rb_prop) {
   return result;
 }
 
+VALUE
+xmpwrapper_get_localized_text(int argc, VALUE *argv, VALUE self) {
+  XMPWrapper *wrapper;
+  TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
+
+  get_xmp(wrapper);
+
+  if (!wrapper->xmpMetaDataLoaded) {
+    rb_raise(rb_eRuntimeError, "No XMP metadata loaded");
+  }
+
+  VALUE kwargs;
+  rb_scan_args(argc, argv, ":", &kwargs);
+
+  // Define allowed keywords
+  ID kw_table[4];
+
+  kw_table[0] = rb_intern("schema_ns");
+  kw_table[1] = rb_intern("alt_text_name");
+  kw_table[2] = rb_intern("generic_lang");
+  kw_table[3] = rb_intern("specific_lang");
+
+  VALUE kw_values[4];
+  kw_values[2] = rb_str_new_cstr("");  // Default for generic_lang
+
+  rb_get_kwargs(kwargs, kw_table, 3, 1, kw_values);
+
+  VALUE schema_ns = kw_values[0];
+  VALUE alt_text_name = kw_values[1];
+  VALUE generic_lang = kw_values[2];  // Will be default if not provided
+  VALUE specific_lang = kw_values[3];
+
+  if (NIL_P(generic_lang)) generic_lang = rb_str_new_cstr("");
+
+  const char *c_schema_ns = StringValueCStr(schema_ns);
+  const char *c_alt_text_name = StringValueCStr(alt_text_name);
+  const char *c_generic_lang = StringValueCStr(generic_lang);
+  const char *c_specific_lang = StringValueCStr(specific_lang);
+
+  std::string actual_lang;
+  std::string item_value;
+  XMP_OptionBits options;
+
+  bool array_items_exists = wrapper->xmpMeta->GetLocalizedText(c_schema_ns, c_alt_text_name, c_generic_lang,
+                                                               c_specific_lang, &actual_lang, &item_value, &options);
+
+  VALUE result = rb_hash_new();
+  rb_hash_aset(result, rb_str_new_cstr("options"), UINT2NUM(options));
+  rb_hash_aset(result, rb_str_new_cstr("exists"), array_items_exists ? Qtrue : Qfalse);
+  rb_hash_aset(result, rb_str_new_cstr("value"), rb_str_new_cstr(item_value.c_str()));
+  rb_hash_aset(result, rb_str_new_cstr("actual_lang"), rb_str_new_cstr(actual_lang.c_str()));
+
+  return result;
+}
+
 static XMP_DateTime datetime_to_xmp(VALUE rb_value) {
   XMP_DateTime dt;
 
@@ -428,7 +484,7 @@ xmpwrapper_update_localized_text(int argc, VALUE *argv, VALUE self) {
   kw_table[5] = rb_intern("options");
 
   VALUE kw_values[6];
-  kw_values[4] = rb_str_new_cstr("");  // Default for generic_lang
+  kw_values[2] = rb_str_new_cstr("");  // Default for generic_lang
   kw_values[5] = INT2NUM(0);           // Default for options
 
   // Extract keywords from kwargs hash
