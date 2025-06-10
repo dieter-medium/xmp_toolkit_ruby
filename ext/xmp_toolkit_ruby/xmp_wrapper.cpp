@@ -185,6 +185,36 @@ xmp_meta(VALUE self) {
   return rb_xmp_data;
 }
 
+VALUE
+xmpwrapper_get_property(VALUE self, VALUE rb_ns, VALUE rb_prop) {
+  XMPWrapper *wrapper;
+  TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
+
+  Check_Type(rb_ns, T_STRING);
+  Check_Type(rb_prop, T_STRING);
+
+  get_xmp(wrapper);
+
+  if (!wrapper->xmpMetaDataLoaded) {
+    rb_raise(rb_eRuntimeError, "No XMP metadata loaded");
+  }
+
+  const char *ns = StringValueCStr(rb_ns);
+  const char *prop = StringValueCStr(rb_prop);
+
+  std::string property_value;
+  XMP_OptionBits options;
+  bool property_exists = wrapper->xmpMeta->GetProperty(ns, prop, &property_value, &options);
+
+  VALUE result = rb_hash_new();
+  rb_hash_aset(result, rb_str_new_cstr("options"), UINT2NUM(options));
+  rb_hash_aset(result, rb_str_new_cstr("exists"), property_exists ? Qtrue : Qfalse);
+  rb_hash_aset(result, rb_str_new_cstr("value"), rb_str_new_cstr(property_value.c_str()));
+
+  return result;
+}
+
 static XMP_DateTime datetime_to_xmp(VALUE rb_value) {
   XMP_DateTime dt;
 

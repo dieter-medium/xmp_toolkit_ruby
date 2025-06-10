@@ -21,6 +21,7 @@ VALUE xmp_file_info(VALUE self);
 VALUE xmp_packet_info(VALUE self);
 
 VALUE xmp_meta(VALUE self);
+VALUE xmpwrapper_get_property(VALUE self, VALUE rb_ns, VALUE rb_prop);
 VALUE xmpwrapper_set_meta(int argc, VALUE *argv, VALUE self);
 
 VALUE xmpwrapper_set_property(VALUE self, VALUE rb_ns, VALUE rb_prop, VALUE rb_value);

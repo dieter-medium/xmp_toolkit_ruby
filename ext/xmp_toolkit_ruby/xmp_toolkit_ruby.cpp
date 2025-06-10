@@ -26,6 +26,7 @@ extern "C" void Init_xmp_toolkit_ruby() {
   rb_define_method(cXMPWrapper, "file_info", RUBY_METHOD_FUNC(xmp_file_info), 0);
   rb_define_method(cXMPWrapper, "packet_info", RUBY_METHOD_FUNC(xmp_packet_info), 0);
   rb_define_method(cXMPWrapper, "meta", RUBY_METHOD_FUNC(xmp_meta), 0);
+  rb_define_method(cXMPWrapper, "property", RUBY_METHOD_FUNC(xmpwrapper_get_property), 2);
   rb_define_method(cXMPWrapper, "update_meta", RUBY_METHOD_FUNC(xmpwrapper_set_meta), -1);
   rb_define_method(cXMPWrapper, "update_property", RUBY_METHOD_FUNC(xmpwrapper_set_property), 3);
   rb_define_method(cXMPWrapper, "update_localized_property", RUBY_METHOD_FUNC(xmpwrapper_update_localized_text), -1);

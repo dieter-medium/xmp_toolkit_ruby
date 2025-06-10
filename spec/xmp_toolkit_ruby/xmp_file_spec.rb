@@ -133,6 +133,23 @@ RSpec.describe XmpToolkitRuby::XmpFile do
     end
   end
 
+  describe "#property" do
+    it "can retrieve a property" do
+      actual_value = nil
+      described_class.with_xmp_file(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_smart_handler)) do |xmp_file|
+        actual_value = xmp_file.property(XmpToolkitRuby::Namespaces::XMP_NS_PDF, "Producer")
+      end
+
+      expect(actual_value).to include(
+                                {
+                                  "exists" => true,
+                                  "options" => 0,
+                                  "value" => "Skia/PDF m134"
+                                }
+                              )
+    end
+  end
+
   describe "#update_meta" do
     subject(:xmp_file) { described_class.new(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags::OPEN_FOR_UPDATE | XmpToolkitRuby::XmpFileOpenFlags::OPEN_USE_SMART_HANDLER) }
 

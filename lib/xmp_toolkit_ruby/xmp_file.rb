@@ -222,6 +222,11 @@ module XmpToolkitRuby
       @xmp_wrapper.update_property(namespace, property, value)
     end
 
+    def property(namespace, property)
+      open
+      @xmp_wrapper.property(namespace, property)
+    end
+
     # Update an alternative-text (localized string) property.
     #
     # @param schema_ns [String] Namespace URI of the alt-text schema
