@@ -38,6 +38,7 @@ module XmpToolkitRuby
   require_relative "xmp_toolkit_ruby/xmp_file_handler_flags"
   require_relative "xmp_toolkit_ruby/xmp_file"
   require_relative "xmp_toolkit_ruby/xmp_value"
+  require_relative "xmp_toolkit_ruby/xmp_char_form"
 
   # The `PLUGINS_PATH` constant defines the directory where the XMP Toolkit
   # should look for its plugins, particularly the PDF handler.

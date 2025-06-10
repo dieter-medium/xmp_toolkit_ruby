@@ -287,8 +287,6 @@ xmpwrapper_set_meta(int argc, VALUE *argv, VALUE self) {
 
   XMP_DateTime dt;
   SXMPUtils::CurrentDateTime(&dt);
-  std::string nowStr;
-  SXMPUtils::ConvertFromDate(dt, &nowStr);
 
   if (xmpString != NULL) {
     newMeta.SetProperty_Date(kXMP_NS_XMP, "MetadataDate", dt, 0);
