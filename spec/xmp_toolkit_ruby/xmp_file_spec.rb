@@ -274,7 +274,9 @@ RSpec.describe XmpToolkitRuby::XmpFile do
           "format" => :kXMP_PDFFile,
           "format_orig" => 1_346_651_680,
           "handler_flags" => %i[can_inject_xmp can_expand can_rewrite allows_only_xmp returns_raw_packet handler_owns_file allows_safe_update needs_preloading],
-          "handler_flags_orig" => 17_255
+          "handler_flags_orig" => 17_255,
+          "open_flags" => %i[open_for_read open_use_smart_handler],
+          "open_flags_orig" => 33
         })
       end
     end

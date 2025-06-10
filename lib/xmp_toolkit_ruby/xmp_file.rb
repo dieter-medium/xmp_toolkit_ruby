@@ -4,7 +4,7 @@ module XmpToolkitRuby
   require_relative "xmp_file_open_flags"
 
   class XmpFile
-    attr_reader :file_path, :open_flags
+    attr_reader :file_path, :open_flags, :fallback_flags
 
     class << self
       def register_namespace(namespace, suggested_prefix)
@@ -29,21 +29,32 @@ module XmpToolkitRuby
       end
     end
 
-    def initialize(file_path, open_flags: XmpFileOpenFlags::OPEN_FOR_READ)
+    def initialize(file_path, open_flags: XmpFileOpenFlags::OPEN_FOR_READ, fallback_flags: nil)
       @file_path = file_path.to_s
+
+      raise ArgumentError, "File path '#{@file_path}' must be a String or Pathname and readable" unless File.readable?(@file_path)
+
       @open_flags = open_flags
       @open = false
       @xmp_wrapper = XmpWrapper.new
+      @fallback_flags = fallback_flags
     end
 
     def open
       return if open?
 
-      raise ArgumentError, "File path must be a String or Pathname" unless File.readable?(@file_path)
-
       warn("XmpToolkitRuby not initialized default Plugin paths #{XmpToolkitRuby::PLUGINS_PATH} will be used") unless XmpToolkitRuby::XmpToolkit.initialized?
 
-      @xmp_wrapper.open(file_path, open_flags).tap { @open = true }
+      begin
+        @xmp_wrapper.open(file_path, open_flags).tap { @open = true }
+      rescue IOError => e
+        @xmp_wrapper.close
+        @open = false
+
+        raise e unless fallback_flags
+
+        @xmp_wrapper.open(file_path, open_flags).tap { @open = true }
+      end
     end
 
     def open?
@@ -60,11 +71,16 @@ module XmpToolkitRuby
                        format = info["format"]
                        format_mapped = XmpToolkitRuby::XmpFileFormat.name_for(format)
 
+                       open_flags = info["open_flags"]
+                       open_flags_mapped = XmpToolkitRuby::XmpFileOpenFlags.flags_for(open_flags)
+
                        {
                          "handler_flags" => handler_flags_mapped,
                          "handler_flags_orig" => handler_flags,
                          "format" => format_mapped,
-                         "format_orig" => format
+                         "format_orig" => format,
+                         "open_flags" => open_flags_mapped,
+                         "open_flags_orig" => open_flags
                        }
                      end
     end

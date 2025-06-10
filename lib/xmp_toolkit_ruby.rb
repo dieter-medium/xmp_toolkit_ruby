@@ -99,9 +99,21 @@ module XmpToolkitRuby
       check_file! file_path, need_to_read: true, need_to_write: false
 
       with_init do
-        result = XmpToolkitRuby::XmpToolkit.read_xmp(file_path)
-        result ||= {}
-        result.merge(cleanup_xmp(result["xmp_data"])).merge(map_handler_flags(result["handler_flags"]))
+        xmp_file = XmpToolkitRuby::XmpFile.new(
+          file_path,
+          open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_smart_handler),
+          fallback_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_packet_scanning)
+        )
+
+        xmp_file.open
+
+        file_info = xmp_file.file_info
+        packet_info = xmp_file.packet_info
+        xmp_data = xmp_file.meta
+
+        file_info.merge(packet_info).merge(xmp_data)
+      ensure
+        xmp_file&.close
       end
     end
 
@@ -130,7 +142,7 @@ module XmpToolkitRuby
     end
 
     # Ensures the native XMP Toolkit is initialized before executing a block
-    # of code and terminated afterwards. This is crucial for managing the
+    # of code and terminated afterward. This is crucial for managing the
     # lifecycle of the underlying C++ library resources.
     #
     # This method should wrap any calls to the native `XmpToolkitRuby::XmpToolkit` methods.

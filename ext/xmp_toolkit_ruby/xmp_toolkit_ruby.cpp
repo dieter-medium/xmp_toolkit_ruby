@@ -19,7 +19,6 @@ extern "C" void Init_xmp_toolkit_ruby() {
   rb_define_singleton_method(mXMPToolkit, "terminate", RUBY_METHOD_FUNC(xmp_terminate), 0);
   rb_define_singleton_method(mXMPToolkit, "initialized?", RUBY_METHOD_FUNC(is_sdk_initialized), 0);
 
-  rb_define_singleton_method(mXMPToolkit, "read_xmp", RUBY_METHOD_FUNC(get_xmp_from_file), 1);
   rb_define_singleton_method(mXMPToolkit, "write_xmp", RUBY_METHOD_FUNC(write_xmp_to_file), -1);
 
   VALUE cXMPWrapper = rb_define_class_under(mXmpToolkitRuby, "XmpWrapper", rb_cObject);

@@ -55,9 +55,6 @@ VALUE xmp_initialize(int argc, VALUE *argv, VALUE self);
 // Terminate SXMPFiles + SXMPMeta.
 VALUE xmp_terminate(VALUE self);
 
-// process_file(filename) → Ruby Hash or nil
-VALUE get_xmp_from_file(VALUE self, VALUE rb_filename);
-
 VALUE write_xmp_to_file(int argc, VALUE *argv, VALUE self);
 
 #endif

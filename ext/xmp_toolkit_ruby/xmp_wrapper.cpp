@@ -5,6 +5,12 @@
 
 static size_t xmpwrapper_memsize(const void *ptr) { return sizeof(XMPWrapper); }
 
+static void check_wrapper_initialized(XMPWrapper *wrapper) {
+  if (wrapper->xmpFile == nullptr || wrapper->xmpMeta == nullptr || wrapper->xmpPacket == nullptr) {
+    rb_raise(rb_eRuntimeError, "XMP file or metadata not initialized or file not opened");
+  }
+}
+
 static void clean_wrapper(XMPWrapper *wrapper) {
   if (wrapper->xmpFile) {
     wrapper->xmpFile->CloseFile();
@@ -57,6 +63,8 @@ static void get_xmp(XMPWrapper *wrapper) {
     return;
   }
 
+  check_wrapper_initialized(wrapper);
+
   bool ok = wrapper->xmpFile->GetXMP(wrapper->xmpMeta, 0, wrapper->xmpPacket);
 
   if (!ok) {
@@ -101,7 +109,8 @@ xmpwrapper_open_file(int argc, VALUE *argv, VALUE self) {
   bool ok = wrapper->xmpFile->OpenFile(filename, kXMP_UnknownFile, opts);
   if (!ok) {
     clean_wrapper(wrapper);
-    rb_raise(rb_eIOError, "Failed to open file %s", filename);
+    rb_raise(rb_eIOError, "Failed to open file %s, try open_use_packet_scanning instead of open_use_smart_handler",
+             filename);
   }
 
   return Qtrue;
@@ -111,6 +120,7 @@ VALUE
 xmp_file_info(VALUE self) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
 
   XMP_FileFormat format;
   XMP_OptionBits openFlags, handlerFlags;
@@ -125,6 +135,7 @@ xmp_file_info(VALUE self) {
 
   rb_hash_aset(result, rb_str_new_cstr("format"), UINT2NUM(format));
   rb_hash_aset(result, rb_str_new_cstr("handler_flags"), UINT2NUM(handlerFlags));
+  rb_hash_aset(result, rb_str_new_cstr("open_flags"), UINT2NUM(openFlags));
 
   return result;
 }
@@ -132,6 +143,7 @@ xmp_file_info(VALUE self) {
 VALUE xmp_packet_info(VALUE self) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
 
   get_xmp(wrapper);
 
@@ -157,6 +169,7 @@ VALUE
 xmp_meta(VALUE self) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
 
   get_xmp(wrapper);
 
@@ -215,6 +228,7 @@ VALUE
 xmpwrapper_set_meta(int argc, VALUE *argv, VALUE self) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
 
   VALUE rb_xmp_data, kwargs;
   XMP_OptionBits templateFlags =
@@ -293,6 +307,7 @@ VALUE
 xmpwrapper_set_property(VALUE self, VALUE rb_ns, VALUE rb_prop, VALUE rb_value) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
 
   Check_Type(rb_ns, T_STRING);
   Check_Type(rb_prop, T_STRING);
@@ -363,6 +378,7 @@ VALUE
 xmpwrapper_update_localized_text(int argc, VALUE *argv, VALUE self) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
 
   get_xmp(wrapper);
 
@@ -448,6 +464,7 @@ VALUE
 write_xmp(VALUE self) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
 
   if (wrapper->xmpFile && wrapper->xmpMeta) {
     try {

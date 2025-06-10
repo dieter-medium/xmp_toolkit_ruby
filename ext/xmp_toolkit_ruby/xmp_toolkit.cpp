@@ -194,8 +194,6 @@ write_xmp_to_file(int argc, VALUE *argv, VALUE self) {
       }
     }
 
-    fprintf(stderr, "Opened file %s for update\n", fileName);
-
     ok = xmpFile.GetXMP(&currentMeta, 0, &xmpPacket);
     if (!ok) {
       xmpFile.CloseFile();
@@ -252,69 +250,6 @@ write_xmp_to_file(int argc, VALUE *argv, VALUE self) {
   }
 
   return Qnil;
-}
-
-VALUE
-get_xmp_from_file(VALUE self, VALUE rb_filename) {
-  Check_Type(rb_filename, T_STRING);
-  const char *fileName = StringValueCStr(rb_filename);
-
-  bool ok;
-  SXMPMeta xmpMeta;
-  SXMPFiles xmpFile;
-  XMP_FileFormat format;
-  XMP_OptionBits openFlags, handlerFlags;
-  XMP_PacketInfo xmpPacket;
-
-  try {
-    XMP_OptionBits opts = kXMPFiles_OpenForRead | kXMPFiles_OpenUseSmartHandler;
-    ok = xmpFile.OpenFile(fileName, kXMP_UnknownFile, opts);
-    if (!ok) {
-      xmpFile.CloseFile();
-
-      opts = kXMPFiles_OpenForRead | kXMPFiles_OpenUsePacketScanning;
-      ok = xmpFile.OpenFile(fileName, kXMP_UnknownFile, opts);
-      if (!ok) {
-        // Neither smart handler nor packet scanning worked
-        xmpFile.CloseFile();
-        return Qnil;
-      }
-    }
-
-    ok = xmpFile.GetFileInfo(0, &openFlags, &format, &handlerFlags);
-    if (!ok) {
-      xmpFile.CloseFile();
-      return Qnil;
-    }
-
-    ok = xmpFile.GetXMP(&xmpMeta, 0, &xmpPacket);
-    if (!ok) {
-      xmpFile.CloseFile();
-      return Qnil;
-    }
-
-    VALUE result = rb_hash_new();
-
-    rb_hash_aset(result, rb_str_new_cstr("format"), UINT2NUM(format));
-    rb_hash_aset(result, rb_str_new_cstr("handler_flags"), UINT2NUM(handlerFlags));
-    rb_hash_aset(result, rb_str_new_cstr("offset"), LONG2NUM(xmpPacket.offset));
-    rb_hash_aset(result, rb_str_new_cstr("length"), LONG2NUM(xmpPacket.length));
-
-    std::string xmpString;
-    xmpMeta.SerializeToBuffer(&xmpString);
-    rb_hash_aset(result, rb_str_new_cstr("xmp_data"), rb_str_new_cstr(xmpString.c_str()));
-
-    xmpFile.CloseFile();
-    return result;
-  } catch (XMP_Error &e) {
-    xmpFile.CloseFile();
-    rb_raise(rb_eRuntimeError, "XMP Error: %s", e.GetErrMsg());
-    return Qnil;
-  } catch (...) {
-    xmpFile.CloseFile();
-    rb_raise(rb_eRuntimeError, "Unknown error processing XMP file");
-    return Qnil;
-  }
 }
 
 // xmp_initialize(self)
