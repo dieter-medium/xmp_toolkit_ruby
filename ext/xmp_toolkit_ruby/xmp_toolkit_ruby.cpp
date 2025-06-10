@@ -19,13 +19,14 @@ extern "C" void Init_xmp_toolkit_ruby() {
   rb_define_singleton_method(mXMPToolkit, "terminate", RUBY_METHOD_FUNC(xmp_terminate), 0);
   rb_define_singleton_method(mXMPToolkit, "initialized?", RUBY_METHOD_FUNC(is_sdk_initialized), 0);
 
-  rb_define_singleton_method(mXMPToolkit, "read_xmp", RUBY_METHOD_FUNC(get_xmp_from_file), 1);
-  rb_define_singleton_method(mXMPToolkit, "write_xmp", RUBY_METHOD_FUNC(write_xmp_to_file), -1);
-
   VALUE cXMPWrapper = rb_define_class_under(mXmpToolkitRuby, "XmpWrapper", rb_cObject);
 
   rb_define_alloc_func(cXMPWrapper, xmpwrapper_allocate);
   rb_define_method(cXMPWrapper, "open", RUBY_METHOD_FUNC(xmpwrapper_open_file), -1);
+  rb_define_method(cXMPWrapper, "file_info", RUBY_METHOD_FUNC(xmp_file_info), 0);
+  rb_define_method(cXMPWrapper, "packet_info", RUBY_METHOD_FUNC(xmp_packet_info), 0);
+  rb_define_method(cXMPWrapper, "meta", RUBY_METHOD_FUNC(xmp_meta), 0);
+  rb_define_method(cXMPWrapper, "update_meta", RUBY_METHOD_FUNC(xmpwrapper_set_meta), -1);
   rb_define_method(cXMPWrapper, "update_property", RUBY_METHOD_FUNC(xmpwrapper_set_property), 3);
   rb_define_method(cXMPWrapper, "update_localized_property", RUBY_METHOD_FUNC(xmpwrapper_update_localized_text), -1);
   rb_define_method(cXMPWrapper, "write", RUBY_METHOD_FUNC(write_xmp),

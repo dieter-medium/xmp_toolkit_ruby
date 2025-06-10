@@ -93,7 +93,7 @@ RSpec.describe XmpToolkitRuby do
 
   it "extracts the format" do
     xmp = described_class.xmp_from_file(xmp_toolkit_fixture_file("BlueSquare.png"))
-    format_str = XmpToolkitRuby::XmpFileFormat.name_for xmp["format"]
+    format_str = XmpToolkitRuby::XmpFileFormat.name_for xmp["format_orig"]
 
     expect(format_str).to eq(:kXMP_PNGFile)
   end
@@ -262,7 +262,7 @@ RSpec.describe XmpToolkitRuby do
   it "detects the correct format" do
     xmp = described_class.xmp_from_file(xmp_toolkit_fixture_file("BlueSquare.png"))
 
-    expect(XmpToolkitRuby::XmpFileFormat.name_for(xmp["format"])).to eq(:kXMP_PNGFile)
+    expect(XmpToolkitRuby::XmpFileFormat.name_for(xmp["format_orig"])).to eq(:kXMP_PNGFile)
   end
 
   it "detects the correct handler flags" do

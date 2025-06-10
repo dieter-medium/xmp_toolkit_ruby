@@ -5,19 +5,34 @@
 
 static size_t xmpwrapper_memsize(const void *ptr) { return sizeof(XMPWrapper); }
 
+static void check_wrapper_initialized(XMPWrapper *wrapper) {
+  if (wrapper->xmpFile == nullptr || wrapper->xmpMeta == nullptr || wrapper->xmpPacket == nullptr) {
+    rb_raise(rb_eRuntimeError, "XMP file or metadata not initialized or file not opened");
+  }
+}
+
+static void clean_wrapper(XMPWrapper *wrapper) {
+  if (wrapper->xmpFile) {
+    wrapper->xmpFile->CloseFile();
+    delete wrapper->xmpFile;
+    wrapper->xmpFile = nullptr;
+  }
+  if (wrapper->xmpMeta) {
+    delete wrapper->xmpMeta;
+    wrapper->xmpMeta = nullptr;
+  }
+  if (wrapper->xmpPacket) {
+    delete wrapper->xmpPacket;
+    wrapper->xmpPacket = nullptr;
+  }
+
+  wrapper->xmpMetaDataLoaded = false;
+}
+
 static void xmpwrapper_free(void *ptr) {
   XMPWrapper *wrapper = static_cast<XMPWrapper *>(ptr);
   if (wrapper) {
-    std::lock_guard<std::mutex> lock(wrapper->mutex);
-    if (wrapper->xmpFile) {
-      wrapper->xmpFile->CloseFile();
-      delete wrapper->xmpFile;
-      wrapper->xmpFile = nullptr;
-    }
-    if (wrapper->xmpMeta) {
-      delete wrapper->xmpMeta;
-      wrapper->xmpMeta = nullptr;
-    }
+    clean_wrapper(wrapper);
 
     delete wrapper;
   }
@@ -38,24 +53,22 @@ xmpwrapper_allocate(VALUE klass) {
   XMPWrapper *wrapper = new XMPWrapper();
   wrapper->xmpMeta = nullptr;
   wrapper->xmpFile = nullptr;
+  wrapper->xmpPacket = nullptr;
   wrapper->xmpMetaDataLoaded = false;
   return TypedData_Wrap_Struct(klass, &xmpwrapper_data_type, wrapper);
 }
 
 static void get_xmp(XMPWrapper *wrapper) {
   if (wrapper->xmpMetaDataLoaded) {
-    fprintf(stderr, "XMP metadata already loaded, skipping GetXMP call.\n");
     return;
   }
 
-  bool ok = wrapper->xmpFile->GetXMP(wrapper->xmpMeta);
+  check_wrapper_initialized(wrapper);
+
+  bool ok = wrapper->xmpFile->GetXMP(wrapper->xmpMeta, 0, wrapper->xmpPacket);
 
   if (!ok) {
-    wrapper->xmpFile->CloseFile();
-    delete wrapper->xmpMeta;
-    delete wrapper->xmpFile;
-    wrapper->xmpMeta = nullptr;
-    wrapper->xmpFile = nullptr;
+    clean_wrapper(wrapper);
     rb_raise(rb_eRuntimeError, "Failed to get XMP metadata");
   }
 
@@ -82,6 +95,7 @@ xmpwrapper_open_file(int argc, VALUE *argv, VALUE self) {
   // Allocate native objects
   wrapper->xmpMeta = new SXMPMeta();
   wrapper->xmpFile = new SXMPFiles();
+  wrapper->xmpPacket = new XMP_PacketInfo();
 
   XMP_OptionBits opts;
 
@@ -94,14 +108,81 @@ xmpwrapper_open_file(int argc, VALUE *argv, VALUE self) {
 
   bool ok = wrapper->xmpFile->OpenFile(filename, kXMP_UnknownFile, opts);
   if (!ok) {
-    delete wrapper->xmpMeta;
-    delete wrapper->xmpFile;
-    wrapper->xmpMeta = nullptr;
-    wrapper->xmpFile = nullptr;
-    rb_raise(rb_eIOError, "Failed to open file %s", filename);
+    clean_wrapper(wrapper);
+    rb_raise(rb_eIOError, "Failed to open file %s, try open_use_packet_scanning instead of open_use_smart_handler",
+             filename);
   }
 
   return Qtrue;
+}
+
+VALUE
+xmp_file_info(VALUE self) {
+  XMPWrapper *wrapper;
+  TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
+
+  XMP_FileFormat format;
+  XMP_OptionBits openFlags, handlerFlags;
+  bool ok = wrapper->xmpFile->GetFileInfo(0, &openFlags, &format, &handlerFlags);
+  if (!ok) {
+    clean_wrapper(wrapper);
+    rb_raise(rb_eRuntimeError, "Failed to get file info");
+    return Qnil;
+  }
+
+  VALUE result = rb_hash_new();
+
+  rb_hash_aset(result, rb_str_new_cstr("format"), UINT2NUM(format));
+  rb_hash_aset(result, rb_str_new_cstr("handler_flags"), UINT2NUM(handlerFlags));
+  rb_hash_aset(result, rb_str_new_cstr("open_flags"), UINT2NUM(openFlags));
+
+  return result;
+}
+
+VALUE xmp_packet_info(VALUE self) {
+  XMPWrapper *wrapper;
+  TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
+
+  get_xmp(wrapper);
+
+  if (!wrapper->xmpMetaDataLoaded) {
+    rb_raise(rb_eRuntimeError, "No XMP metadata loaded");
+  }
+
+  VALUE result = rb_hash_new();
+
+  rb_hash_aset(result, rb_str_new_cstr("offset"), LONG2NUM(wrapper->xmpPacket->offset));
+  rb_hash_aset(result, rb_str_new_cstr("length"), LONG2NUM(wrapper->xmpPacket->length));
+  rb_hash_aset(result, rb_str_new_cstr("pad_size"), LONG2NUM(wrapper->xmpPacket->padSize));
+
+  rb_hash_aset(result, rb_str_new_cstr("char_form"), UINT2NUM(wrapper->xmpPacket->charForm));
+  rb_hash_aset(result, rb_str_new_cstr("writeable"), wrapper->xmpPacket->writeable ? Qtrue : Qfalse);
+  rb_hash_aset(result, rb_str_new_cstr("has_wrapper"), wrapper->xmpPacket->hasWrapper ? Qtrue : Qfalse);
+  rb_hash_aset(result, rb_str_new_cstr("pad"), UINT2NUM(wrapper->xmpPacket->pad));
+
+  return result;
+}
+
+VALUE
+xmp_meta(VALUE self) {
+  XMPWrapper *wrapper;
+  TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
+
+  get_xmp(wrapper);
+
+  if (!wrapper->xmpMetaDataLoaded) {
+    rb_raise(rb_eRuntimeError, "No XMP metadata loaded");
+  }
+
+  std::string xmpString;
+  wrapper->xmpMeta->SerializeToBuffer(&xmpString);
+
+  VALUE rb_xmp_data = rb_str_new_cstr(xmpString.c_str());
+
+  return rb_xmp_data;
 }
 
 static XMP_DateTime datetime_to_xmp(VALUE rb_value) {
@@ -144,9 +225,87 @@ static XMP_DateTime datetime_to_xmp(VALUE rb_value) {
 }
 
 VALUE
+xmpwrapper_set_meta(int argc, VALUE *argv, VALUE self) {
+  XMPWrapper *wrapper;
+  TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
+
+  VALUE rb_xmp_data, kwargs;
+  XMP_OptionBits templateFlags =
+      kXMPTemplate_AddNewProperties | kXMPTemplate_ReplaceExistingProperties | kXMPTemplate_IncludeInternalProperties;
+
+  rb_scan_args(argc, argv, "1:", &rb_xmp_data, &kwargs);
+
+  const char *xmpString = NULL;
+  if (!NIL_P(rb_xmp_data)) {
+    Check_Type(rb_xmp_data, T_STRING);
+    xmpString = StringValueCStr(rb_xmp_data);
+  }
+
+  ID kw_table[1];
+  kw_table[0] = rb_intern("mode");
+
+  VALUE kw_values[1];
+  kw_values[0] = rb_str_new_cstr("upsert");
+
+  rb_get_kwargs(kwargs, kw_table, 0, 1, kw_values);
+
+  VALUE rb_mode_sym = kw_values[0];
+
+  const char *mode_cstr;
+  if (RB_TYPE_P(rb_mode_sym, T_SYMBOL)) {
+    // Convert symbol to string first
+    VALUE mode_str = rb_sym_to_s(rb_mode_sym);
+    mode_cstr = StringValueCStr(mode_str);
+  } else {
+    // Already a string
+    mode_cstr = StringValueCStr(rb_mode_sym);
+  }
+
+  bool override;
+  if (strcmp(mode_cstr, "upsert") == 0) {
+    override = false;
+  } else if (strcmp(mode_cstr, "override") == 0) {
+    override = true;
+  } else {
+    rb_raise(rb_eArgError, "mode must be :upsert or :override (String or Symbol). Got '%s'", mode_cstr);
+    return Qnil;  // unreachable, but for clarity
+  }
+
+  get_xmp(wrapper);
+
+  SXMPMeta newMeta;
+
+  if (xmpString != NULL) {
+    int i;
+    for (i = 0; i < (long)strlen(xmpString) - 10; i += 10) {
+      newMeta.ParseFromBuffer(&xmpString[i], 10, kXMP_ParseMoreBuffers);
+    }
+
+    newMeta.ParseFromBuffer(&xmpString[i], (XMP_StringLen)strlen(xmpString) - i);
+  }
+
+  XMP_DateTime dt;
+  SXMPUtils::CurrentDateTime(&dt);
+
+  if (xmpString != NULL) {
+    newMeta.SetProperty_Date(kXMP_NS_XMP, "MetadataDate", dt, 0);
+  }
+
+  if (override) {
+    wrapper->xmpMeta->Erase();
+  }
+
+  SXMPUtils::ApplyTemplate(wrapper->xmpMeta, newMeta, templateFlags);
+
+  return Qnil;
+}
+
+VALUE
 xmpwrapper_set_property(VALUE self, VALUE rb_ns, VALUE rb_prop, VALUE rb_value) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
 
   Check_Type(rb_ns, T_STRING);
   Check_Type(rb_prop, T_STRING);
@@ -217,6 +376,7 @@ VALUE
 xmpwrapper_update_localized_text(int argc, VALUE *argv, VALUE self) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
 
   get_xmp(wrapper);
 
@@ -302,6 +462,7 @@ VALUE
 write_xmp(VALUE self) {
   XMPWrapper *wrapper;
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
+  check_wrapper_initialized(wrapper);
 
   if (wrapper->xmpFile && wrapper->xmpMeta) {
     try {
@@ -328,15 +489,7 @@ xmpwrapper_close_file(VALUE self) {
   TypedData_Get_Struct(self, XMPWrapper, &xmpwrapper_data_type, wrapper);
 
   if (wrapper->xmpFile) {
-    wrapper->xmpFile->CloseFile();
-    if (wrapper->xmpMeta) {
-      delete wrapper->xmpMeta;
-    }
-
-    delete wrapper->xmpFile;
-
-    wrapper->xmpMeta = nullptr;
-    wrapper->xmpFile = nullptr;
+    clean_wrapper(wrapper);
   }
 
   return Qtrue;
