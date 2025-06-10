@@ -13,12 +13,16 @@ module XmpToolkitRuby
         XmpWrapper.register_namespace(namespace, suggested_prefix)
       end
 
-      def with_xmp_file(file_path, open_flags: XmpFileOpenFlags::OPEN_FOR_READ, plugin_path: XmpToolkitRuby::PLUGINS_PATH, auto_terminate_toolkit: true)
+      def with_xmp_file(file_path,
+                        open_flags: XmpFileOpenFlags::OPEN_FOR_READ,
+                        plugin_path: XmpToolkitRuby::PLUGINS_PATH,
+                        fallback_flags: nil,
+                        auto_terminate_toolkit: true)
         XmpToolkitRuby.check_file! file_path, need_to_read: true, need_to_write: XmpFileOpenFlags.contains?(open_flags, :open_for_update)
 
         XmpToolkitRuby::XmpToolkit.initialize_xmp(plugin_path) unless XmpToolkitRuby.sdk_initialized?
 
-        xmp_file = new(file_path, open_flags: open_flags)
+        xmp_file = new(file_path, open_flags: open_flags, fallback_flags: fallback_flags)
         xmp_file.open
         yield xmp_file
       ensure

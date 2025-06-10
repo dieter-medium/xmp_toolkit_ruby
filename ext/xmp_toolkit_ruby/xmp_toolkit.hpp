@@ -55,6 +55,4 @@ VALUE xmp_initialize(int argc, VALUE *argv, VALUE self);
 // Terminate SXMPFiles + SXMPMeta.
 VALUE xmp_terminate(VALUE self);
 
-VALUE write_xmp_to_file(int argc, VALUE *argv, VALUE self);
-
 #endif

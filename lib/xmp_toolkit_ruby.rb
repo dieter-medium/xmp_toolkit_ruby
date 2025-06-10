@@ -31,6 +31,7 @@ require "date"
 #   new_xmp_data = "<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'></rdf:RDF></x:xmpmeta>"
 #   XmpToolkitRuby.xmp_to_file("path/to/image.jpg", new_xmp_data, override: true)
 #
+# rubocop:disable Metrics/ModuleLength
 module XmpToolkitRuby
   require_relative "xmp_toolkit_ruby/xmp_file_format"
   require_relative "xmp_toolkit_ruby/namespaces"
@@ -99,21 +100,17 @@ module XmpToolkitRuby
       check_file! file_path, need_to_read: true, need_to_write: false
 
       with_init do
-        xmp_file = XmpToolkitRuby::XmpFile.new(
+        XmpToolkitRuby::XmpFile.with_xmp_file(
           file_path,
           open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_smart_handler),
           fallback_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_read, :open_use_packet_scanning)
-        )
+        ) do |xmp_file|
+          file_info = xmp_file.file_info
+          packet_info = xmp_file.packet_info
+          xmp_data = xmp_file.meta
 
-        xmp_file.open
-
-        file_info = xmp_file.file_info
-        packet_info = xmp_file.packet_info
-        xmp_data = xmp_file.meta
-
-        file_info.merge(packet_info).merge(xmp_data)
-      ensure
-        xmp_file&.close
+          file_info.merge(packet_info).merge(xmp_data)
+        end
       end
     end
 
@@ -138,7 +135,21 @@ module XmpToolkitRuby
     def xmp_to_file(file_path, xmp_data, override: false)
       check_file! file_path, need_to_read: true, need_to_write: true
 
-      with_init { XmpToolkitRuby::XmpToolkit.write_xmp(file_path, xmp_data, override ? :override : :upsert) }
+      with_init do
+        XmpToolkitRuby::XmpFile.with_xmp_file(
+          file_path,
+          open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_update, :open_use_smart_handler),
+          fallback_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_update, :open_use_packet_scanning)
+        ) do |xmp_file|
+          xmp_file.update_meta xmp_data, mode: override ? :override : :upsert
+
+          file_info = xmp_file.file_info
+          packet_info = xmp_file.packet_info
+          xmp_data = xmp_file.meta
+
+          file_info.merge(packet_info).merge(xmp_data)
+        end
+      end
     end
 
     # Ensures the native XMP Toolkit is initialized before executing a block
@@ -152,7 +163,7 @@ module XmpToolkitRuby
     # @yield The block of code to execute while the XMP Toolkit is initialized.
     # @return The result of the yielded block.
     def with_init(path = nil, &block)
-      XmpToolkitRuby::XmpToolkit.initialize_xmp(path || PLUGINS_PATH)
+      XmpToolkitRuby::XmpToolkit.initialize_xmp(path || PLUGINS_PATH) unless XmpToolkitRuby.sdk_initialized?
 
       block.call
     ensure
@@ -260,3 +271,4 @@ module XmpToolkitRuby
     # rubocop: enable Metrics/AbcSize, Metrics/MethodLength
   end
 end
+# rubocop: enable Metrics/ModuleLength
