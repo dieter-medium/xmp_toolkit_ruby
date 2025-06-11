@@ -277,4 +277,19 @@ RSpec.describe XmpToolkitRuby do
                                       :needs_read_only_packet
                                     )
   end
+
+  context "when extracting XMP data from various files" do
+    %w[
+      BlueSquare.ai BlueSquare.avi BlueSquare.eps BlueSquare.indd BlueSquare.jpg BlueSquare.mov BlueSquare.mp3 BlueSquare.pdf
+      BlueSquare.png BlueSquare.psd BlueSquare.tif BlueSquare.wav Image1.jpg Image2.jpg
+     ].each do |filename|
+      let(:file_path) { xmp_toolkit_fixture_file(filename) }
+
+      it "extracts XMP data from #{File.extname(filename)} (#{filename})" do
+        xmp = described_class.xmp_from_file(file_path)
+
+        expect(xmp["xmp_data"]).to include("<photoshop:DateCreated>2003-02-04T08:06:18Z</photoshop:DateCreated>")
+      end
+    end
+  end
 end
