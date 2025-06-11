@@ -1,0 +1,45 @@
+module XmpToolkitRuby
+  class XmpFile
+    def self.register_namespace: (String namespace, String suggested_prefix) -> bool
+
+    def self.with_xmp_file: (String file_path, ?open_flags: Integer, ?plugin_path: String, ?fallback_flags: Integer, ?auto_terminate_toolkit: bool) { (XmpFile) -> void } -> void
+
+    public
+
+    def close: () -> void
+
+    def fallback_flags: () -> Integer
+
+    def file_info: () -> Hash[String, untyped]
+
+    def file_path: () -> String
+
+    def localized_property: (schema_ns: String, alt_text_name: String, generic_lang: String, specific_lang: String) -> String?
+
+    def meta: () -> Hash[String, untyped]
+
+    def open: () -> bool
+
+    def open?: () -> bool
+
+    def open_flags: () -> Integer
+
+    def packet_info: () -> Hash[String, untyped]
+
+    def property: (String namespace, String property) -> untyped
+
+    def update_localized_property: (schema_ns: String, alt_text_name: String, generic_lang: String, specific_lang: String, item_value: String, options: Hash[Symbol, untyped]) -> bool
+
+    def update_meta: (Hash[String, untyped] xmp_data, ?mode: Symbol) -> bool
+
+    def update_property: (String namespace, String property, untyped value) -> bool
+
+    def write: () -> bool
+
+    private
+
+    def initialize: (String file_path, ?open_flags: Integer, ?fallback_flags: Integer) -> void
+
+    def map_handler_flags: (Integer handler_flags) -> Hash[Symbol, untyped]
+  end
+end

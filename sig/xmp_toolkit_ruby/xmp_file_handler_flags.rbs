@@ -1,0 +1,15 @@
+# frozen_string_literal: true
+
+module XmpToolkitRuby
+  module XmpFileHandlerFlags
+    def self.flags_for: (Integer bitmask) -> Hash[Symbol, bool]
+
+    def self.name_for: (Integer hex_value) -> Symbol?
+
+    def self.value_for: (Symbol name) -> Integer?
+
+    FLAGS: ::Hash[Symbol, Integer]
+
+    FLAGS_BY_VALUE: ::Hash[Integer, Symbol]
+  end
+end

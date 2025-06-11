@@ -1,0 +1,29 @@
+module XmpToolkitRuby
+  class XmpWrapper
+    def self.register_namespace: (String namespace_uri, String suggested_prefix) -> String
+
+    public
+
+    def close: () -> void
+
+    def file_info: () -> Hash[Symbol, String]
+
+    def localized_property: (String schema_ns, String prop_name, ?String? locale, ?Symbol? options) -> String?
+
+    def meta: () -> Hash[String, Hash[String, String]]
+
+    def open: (String file_path, ?Symbol? options) -> self
+
+    def packet_info: () -> Hash[Symbol, Integer]
+
+    def property: (String schema_ns, String prop_name) -> String?
+
+    def update_localized_property: (String schema_ns, String prop_name, String value, ?String? locale, ?Symbol? options) -> void
+
+    def update_meta: (Hash[String, Hash[String, String]] metadata) -> void
+
+    def update_property: (String schema_ns, String prop_name, String value) -> void
+
+    def write: () -> Boolean
+  end
+end

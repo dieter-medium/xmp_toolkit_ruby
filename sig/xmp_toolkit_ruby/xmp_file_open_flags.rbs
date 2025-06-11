@@ -1,0 +1,29 @@
+module XmpToolkitRuby
+  module XmpFileOpenFlags
+    def self.bitmask_for: (*Symbol args) -> Integer
+
+    def self.contains?: (Integer bitmask, Symbol | Integer flag) -> bool
+
+    def self.flags_for: (Integer bitmask) -> Array[Symbol]
+
+    def self.name_for: (Integer hex_value) -> Symbol?
+
+    def self.value_for: (Symbol name) -> Integer?
+
+    FLAGS: ::Hash[Symbol, Integer]
+
+    FLAGS_BY_VALUE: ::Hash[Integer, Symbol]
+
+    FORCE_GIVEN_HANDLER: ::Integer
+    OPEN_FOR_READ: ::Integer
+    OPEN_FOR_UPDATE: ::Integer
+    OPEN_LIMITED_SCANNING: ::Integer
+    OPEN_ONLY_XMP: ::Integer
+    OPEN_REPAIR_FILE: ::Integer
+    OPEN_STRICTLY: ::Integer
+    OPEN_USE_PACKET_SCANNING: ::Integer
+    OPEN_USE_SMART_HANDLER: ::Integer
+    OPTIMIZE_FILE_LAYOUT: ::Integer
+    PRESERVE_PDF_STATE: ::Integer
+  end
+end

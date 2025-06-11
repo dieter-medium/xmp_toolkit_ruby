@@ -1,0 +1,17 @@
+module XmpToolkitRuby
+  module XmpCharForm
+    # Returns the flags for a given bitmask.
+    def self.flags_for: (Integer bitmask) -> Array[Symbol]
+
+    # Returns the name for a given value.
+    def self.name_for: (Integer value) -> String
+
+    # Returns the value for a given name.
+    def self.value_for: (String name) -> Integer
+
+    # Mapping from character form names to their values.
+    CHAR_FORM: ::Hash[String, Integer]
+
+    # Mapping from character form values to their names.
+    CHAR_FORM_BY_VALUE: ::Hash[Integer, String]
+end

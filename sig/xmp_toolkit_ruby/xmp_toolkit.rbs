@@ -1,0 +1,14 @@
+module XmpToolkitRuby
+  module XmpToolkit
+    # Initialize the XMP toolkit library
+    # @param options Optional initialization parameters
+    def self.initialize_xmp: (?Hash[Symbol, untyped] options) -> bool
+
+    # Check if the XMP toolkit has been initialized
+    def self.initialized?: () -> bool
+
+    # Terminate the XMP toolkit library
+    # @return [true] when successful
+    def self.terminate: () -> bool
+  end
+end
