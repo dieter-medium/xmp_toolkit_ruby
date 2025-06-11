@@ -221,11 +221,11 @@ XmpToolkitRuby.xmp_to_file(
 # you can use the XmpToolkitRuby::XmpToolkit module directly:
 XmpToolkitRuby::XmpToolkit.initialize_xmp(XmpToolkitRuby::PLUGINS_PATH)
 # in this case you can call here 
-XmpToolkitRuby::XmpFile.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfua"
+XmpToolkitRuby::XmpFile.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfuaid"
 
 XmpToolkitRuby::XmpFile.with_xmp_file(filename, open_flags: XmpToolkitRuby::XmpFileOpenFlags.bitmask_for(:open_for_update, :open_use_smart_handler, auto_terminate_toolkit: false)) do |xmp_file|
   # in case the lifecycle is managed by with_xmp_file
-  XmpToolkitRuby::XmpFile.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfua"
+  XmpToolkitRuby::XmpFile.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfuaid"
 
   xmp_file.update_localized_property schema_ns: XmpToolkitRuby::Namespaces::XMP_NS_DC,
                                      alt_text_name: "title",
@@ -276,7 +276,7 @@ Alternatively, you can use the `with_xmp_file` method which automatically initia
 Before working with properties in custom or less-common namespaces, you need to register them with a prefix:
 
 ```ruby
-XmpToolkitRuby::XmpFile.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfua"
+XmpToolkitRuby::XmpFile.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfuaid"
 ```
 
 This allows the SDK to recognize and correctly handle properties within that namespace.

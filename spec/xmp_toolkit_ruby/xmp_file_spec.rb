@@ -34,7 +34,7 @@ RSpec.describe XmpToolkitRuby::XmpFile do
 
   describe "#update_property" do
     it "can set a property" do
-      described_class.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfua"
+      described_class.register_namespace XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "pdfuaid"
 
       xmp_file.open
       xmp_file.update_property XmpToolkitRuby::Namespaces::XMP_NS_PDFUA_ID, "part", "1"
