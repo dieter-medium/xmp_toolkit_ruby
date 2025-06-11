@@ -509,11 +509,6 @@ xmpwrapper_update_localized_text(int argc, VALUE *argv, VALUE self) {
   const char *c_item_value = StringValueCStr(item_value);
   XMP_OptionBits c_options = NUM2UINT(options);
 
-  fprintf(stderr,
-          "Updating localized text with schema_ns='%s', alt_text_name='%s', generic_lang='%s', specific_lang='%s', "
-          "item_value='%s', options=%u\n",
-          c_schema_ns, c_alt_text_name, c_generic_lang, c_specific_lang, c_item_value, c_options);
-
   wrapper->xmpMeta->SetLocalizedText(c_schema_ns, c_alt_text_name, c_generic_lang, c_specific_lang,
                                      std::string(c_item_value), c_options);
 
