@@ -1,0 +1,11 @@
+module XmpToolkitRuby
+  module XmpFileFormat
+    def self.name_for: (Integer hex_value) -> String?
+
+    def self.value_for: (String name) -> Integer?
+
+    FORMATS: ::Hash[Symbol, String]
+
+    FORMATS_BY_VALUE: ::Hash[Integer, Symbol]
+  end
+end

@@ -1,0 +1,19 @@
+module XmpToolkitRuby
+
+  class XmpValue
+  public
+  # Returns the type of the XMP value
+  def type: () -> Symbol
+
+  # Returns the actual value
+  def value: () -> String | Integer | Float | Boolean | Array[String] | nil
+
+  private
+
+  # Initialize a new XMP value with the given value and type
+  def initialize: (String | Integer | Float | Boolean | Array[String] | nil value, ?type: Symbol) -> void
+
+  # List of valid XMP value types
+  TYPES: ::Array[Symbol]
+  end
+end

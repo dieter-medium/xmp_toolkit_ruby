@@ -1,0 +1,119 @@
+module XmpToolkitRuby
+  module Namespaces
+    XMP_NS_ADOBE_STOCK_PHOTO: ::String
+
+    XMP_NS_AESCART: ::String
+
+    XMP_NS_ASF: ::String
+
+    XMP_NS_BWF: ::String
+
+    XMP_NS_CAMERA_RAW: ::String
+
+    XMP_NS_CREATOR_ATOM: ::String
+
+    XMP_NS_DC: ::String
+
+    XMP_NS_DICOM: ::String
+
+    XMP_NS_DM: ::String
+
+    XMP_NS_EXIF: ::String
+
+    XMP_NS_EXIF_AUX: ::String
+
+    XMP_NS_EXIF_EX: ::String
+
+    XMP_NS_IPTC_CORE: ::String
+
+    XMP_NS_IPTC_EXT: ::String
+
+    XMP_NS_IXML: ::String
+
+    XMP_NS_JP2K: ::String
+
+    XMP_NS_JPEG: ::String
+
+    XMP_NS_PDF: ::String
+
+    XMP_NS_PDFA_EXTENSION: ::String
+
+    XMP_NS_PDFA_FIELD: ::String
+
+    XMP_NS_PDFA_ID: ::String
+
+    XMP_NS_PDFA_PROPERTY: ::String
+
+    XMP_NS_PDFA_SCHEMA: ::String
+
+    XMP_NS_PDFA_TYPE: ::String
+
+    XMP_NS_PDFUA_ID: ::String
+
+    XMP_NS_PDFX: ::String
+
+    XMP_NS_PDFX_ID: ::String
+
+    XMP_NS_PHOTOSHOP: ::String
+
+    XMP_NS_PLUS: ::String
+
+    XMP_NS_PNG: ::String
+
+    XMP_NS_PSALBUM: ::String
+
+    XMP_NS_RDF: ::String
+
+    XMP_NS_RIFFINFO: ::String
+
+    XMP_NS_SCRIPT: ::String
+
+    XMP_NS_SWF: ::String
+
+    XMP_NS_TIFF: ::String
+
+    XMP_NS_WAV: ::String
+
+    XMP_NS_XML: ::String
+
+    XMP_NS_XMP: ::String
+
+    XMP_NS_XMP_BJ: ::String
+
+    XMP_NS_XMP_DIMENSIONS: ::String
+
+    XMP_NS_XMP_FONT: ::String
+
+    XMP_NS_XMP_GRAPHICS: ::String
+
+    XMP_NS_XMP_G_IMG: ::String
+
+    XMP_NS_XMP_IDENTIFIER_QUAL: ::String
+
+    XMP_NS_XMP_IMAGE: ::String
+
+    XMP_NS_XMP_MANIFEST_ITEM: ::String
+
+    XMP_NS_XMP_MM: ::String
+
+    XMP_NS_XMP_NOTE: ::String
+
+    XMP_NS_XMP_PAGED_FILE: ::String
+
+    XMP_NS_XMP_RESOURCE_EVENT: ::String
+
+    XMP_NS_XMP_RESOURCE_REF: ::String
+
+    XMP_NS_XMP_RIGHTS: ::String
+
+    XMP_NS_XMP_ST_JOB: ::String
+
+    XMP_NS_XMP_ST_VERSION: ::String
+
+    XMP_NS_XMP_T: ::String
+
+    XMP_NS_XMP_TEXT: ::String
+
+    XMP_NS_XMP_T_PG: ::String
+  end
+end
