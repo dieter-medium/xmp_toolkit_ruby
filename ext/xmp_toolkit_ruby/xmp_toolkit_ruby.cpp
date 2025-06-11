@@ -7,7 +7,7 @@
 
 // The one and only Init function.  Ruby will look for Init_xmp_toolkit_ruby
 // because we will (in extconf.rb) build this extension as “xmp_toolkit_ruby.so”.
-extern "C" void Init_xmp_toolkit_ruby() {
+RUBY_FUNC_EXPORTED "C" void Init_xmp_toolkit_ruby() {
   SXMPMeta::SetDefaultErrorCallback(xmp_meta_error_callback, nullptr, 0);
 
   SXMPFiles::SetDefaultErrorCallback(xmp_file_error_callback, nullptr, 0);

@@ -44,7 +44,7 @@ extension_name = "xmp_toolkit_ruby/xmp_toolkit_ruby"
 # $CXXFLAGS << ' -std=c++11 '
 
 if with_config("xmp-dir")
-  xmp_include_dir, xmp_lib_dir = dir_config('xmp-dir')
+  xmp_include_dir, xmp_lib_dir = dir_config('xmp')
 
   # Add the custom directories to search paths
   $INCFLAGS << " -I#{xmp_include_dir}"
